@@ -1,0 +1,234 @@
+TeamHarness nginx + Docker 部署层模块测试报告
+运行时间: 2026-08-11 16:14:02
+BaseUrl: http://localhost:8080
+DeployDir: d:\Code\TeamHarness\deploy
+======================================================================
+汇总: PASS=55  FAIL=20  SKIP=0  Total=75
+======================================================================
+
+===== 详细结果 =====
+[PASS] GET / 状态码应为 200
+        Expected: 200
+        Actual:   200
+[PASS] GET / Content-Type 应为 text/html
+        Expected: contains 'text/html'
+        Actual:   found
+[PASS] GET / 应含 Vue 挂载点 #app
+        Expected: contains 'id="app"'
+        Actual:   found
+[PASS] GET / 应引用 app.js
+        Expected: contains 'app.js'
+        Actual:   found
+[PASS] GET /index.html 状态码应为 200
+        Expected: 200
+        Actual:   200
+[PASS] GET /index.html Content-Type 应为 text/html
+        Expected: contains 'text/html'
+        Actual:   found
+[PASS] GET /app.js 状态码应为 200
+        Expected: 200
+        Actual:   200
+[PASS] GET /app.js Content-Type 应为 javascript
+        Expected: contains 'javascript'
+        Actual:   found
+[PASS] GET /services/api.js 状态码应为 200
+        Expected: 200
+        Actual:   200
+[PASS] GET /services/api.js Content-Type 应为 javascript
+        Expected: contains 'javascript'
+        Actual:   found
+[PASS] GET /services/utils.js 状态码应为 200
+        Expected: 200
+        Actual:   200
+[PASS] GET /services/utils.js Content-Type 应为 javascript
+        Expected: contains 'javascript'
+        Actual:   found
+[FAIL] GET /nonexistent.js 应 404（资源不存在）
+        Expected: 404
+        Actual:   实际 200（try_files fallback 到 index.html，CT=text/html）
+[PASS] HTML 引用资源 'app.js' 应 200
+        Expected: 200
+        Actual:   200
+[PASS] HTML 引用资源 'services/api.js' 应 200
+        Expected: 200
+        Actual:   200
+[PASS] HTML 引用资源 'services/utils.js' 应 200
+        Expected: 200
+        Actual:   200
+[PASS] GET /v1/assets 代理到 asset-service 应 200
+        Expected: 200
+        Actual:   200
+[PASS] GET /v1/assets 响应应为 JSON
+        Expected: contains 'application/json'
+        Actual:   found
+[PASS] POST /v1/auth/apikey 代理到 asset-service 应 200
+        Expected: 200
+        Actual:   200
+[PASS] POST /v1/auth/apikey 响应应为 JSON
+        Expected: contains 'application/json'
+        Actual:   found
+[PASS] nginx.conf 配置文件应存在
+        Expected: file exists
+        Actual:   found
+[PASS] nginx.conf 应配置 /v1/ location
+        Expected: location /v1/
+        Actual:   found
+[PASS] nginx.conf /v1/ proxy_pass 应指向 asset-service
+        Expected: http://asset-service
+        Actual:   found
+[PASS] nginx.conf upstream asset-service 应指向 asset-service:8080
+        Expected: asset-service:8080
+        Actual:   found
+[PASS] nginx.conf 应配置 try_files SPA fallback
+        Expected: try_files \ \/ /index.html
+        Actual:   found
+[FAIL] GET /v1/assets/../../../etc/passwd 应 400/404（COMPAT-3）
+        Expected: 400/404
+        Actual:   实际 200 text/html（nginx 归一化路径后命中 / location，返回 index.html）
+[FAIL] GET /../etc/passwd 应 400/404
+        Expected: 400/404
+        Actual:   实际 200 text/html（归一化后命中 / location）
+[FAIL] GET /v1/../../etc/passwd 应 400/404
+        Expected: 400/404
+        Actual:   实际 200 text/html（归一化后命中 / location）
+[PASS] GET /..%2F..%2Fetc%2Fpasswd 应 400/404
+        Expected: 400/404
+        Actual:   400
+[FAIL] GET /v1/assets/%2e%2e/%2e%2e/etc/passwd 应 400/404
+        Expected: 400/404
+        Actual:   实际 200 text/html（归一化后命中 / location）
+[PASS] 路径遍历响应不应泄露 /etc/passwd 内容（root:）
+        Expected: not contains 'root:'
+        Actual:   ok
+[PASS] GET / 应 200
+        Expected: 200
+        Actual:   200
+[PASS] HEAD / 应 200
+        Expected: 200/301/302
+        Actual:   200
+[PASS] POST / 应 405/404
+        Expected: 405/404
+        Actual:   405
+[PASS] OPTIONS / 应 200/204/405（COMPAT-2）
+        Expected: 200/204/405
+        Actual:   405
+[PASS] DELETE / 应 405/404
+        Expected: 405/404
+        Actual:   405
+[PASS] OPTIONS /v1/assets（API CORS preflight）应 200/204/405
+        Expected: 200/204/405
+        Actual:   405
+[FAIL] 响应应含 X-Frame-Options
+        Expected: present
+        Actual:   缺失（nginx.conf 未配置 add_header X-Frame-Options）
+[FAIL] 响应应含 X-Content-Type-Options: nosniff
+        Expected: nosniff
+        Actual:   缺失（nginx.conf 未配置）
+[FAIL] 响应应含 Content-Security-Policy
+        Expected: present
+        Actual:   缺失（nginx.conf 未配置）
+[FAIL] 响应应含 Strict-Transport-Security
+        Expected: present
+        Actual:   缺失（nginx.conf 未配置，HTTP 部署可接受但生产 HTTPS 应配置）
+[FAIL] nginx.conf 应配置 X-Frame-Options
+        Expected: add_header X-Frame-Options
+        Actual:   not found
+[FAIL] nginx.conf 应配置 X-Content-Type-Options
+        Expected: add_header X-Content-Type-Options
+        Actual:   not found
+[FAIL] nginx.conf 应配置 Content-Security-Policy
+        Expected: add_header Content-Security-Policy
+        Actual:   not found
+[FAIL] nginx.conf 应启用 gzip
+        Expected: gzip on
+        Actual:   not found（nginx.conf 未配置 gzip）
+[FAIL] nginx.conf 应配置 gzip_types
+        Expected: gzip_types
+        Actual:   not found
+[FAIL] GET /app.js (gzip) 应返回 Content-Encoding: gzip
+        Expected: gzip
+        Actual:   实际 Content-Encoding=（未启用 gzip）
+[FAIL] GET /v1/assets (gzip) 应返回 Content-Encoding: gzip
+        Expected: gzip
+        Actual:   实际 Content-Encoding=（未启用 gzip）
+[FAIL] GET /app.js 应有 Cache-Control
+        Expected: present
+        Actual:   缺失（nginx.conf 未配置 expires / add_header Cache-Control）
+[FAIL] GET /index.html 应 no-cache
+        Expected: no-cache
+        Actual:   实际 Cache-Control=（未配置，HTML 可被缓存导致更新不生效）
+[FAIL] nginx.conf 应配置 expires / Cache-Control
+        Expected: expires|Cache-Control
+        Actual:   not found（无任何缓存策略）
+[PASS] docker compose ps 应返回容器列表
+        Expected: non-empty
+        Actual:   7 容器
+[PASS] 容器 teamharness-nginx 应 running
+        Expected: running
+        Actual:   running (health=none)
+[PASS] 容器 teamharness-asset-service 应 healthy
+        Expected: healthy
+        Actual:   running/healthy
+[PASS] 容器 teamharness-recall-service 应 healthy
+        Expected: healthy
+        Actual:   running/healthy
+[PASS] 容器 teamharness-distill-service 应 healthy
+        Expected: healthy
+        Actual:   running/healthy
+[PASS] 容器 teamharness-postgres 应 healthy
+        Expected: healthy
+        Actual:   running/healthy
+[PASS] 容器 teamharness-gitea 应 healthy
+        Expected: healthy
+        Actual:   running/healthy
+[PASS] nginx 容器日志应无 error
+        Expected: no error
+        Actual:   ok
+[PASS] asset-service 容器日志应无 error
+        Expected: no error
+        Actual:   ok
+[PASS] frontend.Dockerfile 应拷贝 services/ 目录
+        Expected: COPY frontend/services/
+        Actual:   found
+[PASS] frontend.Dockerfile 应拷贝 index.html
+        Expected: COPY frontend/index.html
+        Actual:   found
+[PASS] frontend.Dockerfile 应拷贝 app.js
+        Expected: COPY frontend/app.js
+        Actual:   found
+[PASS] nginx 容器内应有 index.html / app.js / services/
+        Expected: all present
+        Actual:   found
+[PASS] nginx 容器内 services/ 应有 api.js / utils.js
+        Expected: api.js + utils.js
+        Actual:   found
+[PASS] 8080 端口应可访问
+        Expected: 200
+        Actual:   200
+[PASS] docker-compose nginx 应映射 8080:80
+        Expected: 8080:80
+        Actual:   found
+[FAIL] 应只暴露 8080（无多余端口）
+        Expected: only 8080
+        Actual:   额外暴露: 5432:5432 (POSTGRES_PORT), 6333:6333 (QDRANT_PORT), 3000:3000 (GITEA_PORT), 2222:2222 (GITEA_SSH_PORT)（生产环境应移除 postgres/qdrant/gitea 端口映射）
+[PASS] CDN 可达: https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js
+        Expected: 200
+        Actual:   200
+[PASS] CDN 可达: https://unpkg.com/element-plus@2.6.3/dist/index.css
+        Expected: 200
+        Actual:   200
+[PASS] CDN 可达: https://unpkg.com/element-plus@2.6.3/dist/index.full.min.js
+        Expected: 200
+        Actual:   200
+[PASS] CDN 可达: https://unpkg.com/@element-plus/icons-vue@2.3.1/dist/index.iife.min.js
+        Expected: 200
+        Actual:   200
+[PASS] HTML 应引用 CDN: https://unpkg.com/vue@3.4.21
+        Expected: referenced
+        Actual:   found
+[PASS] HTML 应引用 CDN: https://unpkg.com/element-plus@2.6.3
+        Expected: referenced
+        Actual:   found
+[PASS] HTML 应引用 CDN: https://unpkg.com/@element-plus/icons-vue@2.3.1
+        Expected: referenced
+        Actual:   found

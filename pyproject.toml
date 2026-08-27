@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "teamharness"
+version = "0.1.0"
+description = "TeamHarness — 团队级 AI 协作资产共享平台"
+requires-python = ">=3.11"
+readme = "TECH_PROPOSAL.md"
+dependencies = [
+    # Web 框架
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "httpx>=0.27",
+    # 数据模型
+    "pydantic>=2.6",
+    # YAML 解析（INDEX.md frontmatter / categories.yaml / mapping.yaml）
+    "PyYAML>=6.0",
+    # 数据库（核心）
+    "SQLAlchemy[asyncio]>=2.0.27",
+    "alembic>=1.13",
+    # 生产 PG 驱动（异步）
+    "asyncpg>=0.29",
+    # 向量库
+    "qdrant-client>=1.8",
+    # 签名验证（tool 资产 PR Review 强制 Ed25519 验签，SubTask 5.9 缺陷 8.2）
+    "cryptography>=42.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "aiosqlite>=0.20",      # 测试用 SQLite 异步驱动
+    "pytest-cov>=4.1",
+]
+# 可选：PGVector 后端（与 PG 同库）
+pgvector = ["pgvector>=0.2.5"]
+# 可选：libgit2 本地仓库 Provider
+libgit2 = ["pygit2>=1.14"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["server*"]
+exclude = ["tests*", "migrations*"]
+
+[tool.pytest.ini_options]
+testpaths = ["server", "tests"]
+asyncio_mode = "auto"
+pythonpath = ["."]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["server"]
+omit = ["*/tests/*", "*/__init__.py"]

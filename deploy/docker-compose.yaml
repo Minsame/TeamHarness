@@ -1,0 +1,345 @@
+# TeamHarness docker-compose 一键部署（SubTask 3.2）
+#
+# 启动组件：
+#   1. postgres       —— 元数据库 + PGVector 向量后端（pgvector 扩展）
+#   2. qdrant         —— 独立向量库（可选，与 PGVector 二选一；默认走 PGVector）
+#   3. gitea          —— 自托管 Git 服务（资产仓库 SSOT）
+#   4. gitea-init     —— 一次性初始化（创建 teamharness-shared 仓库）
+#   5. asset-service  —— 资产服务（PR Review / 语义去重 / webhook 接收）
+#   6. recall-service —— 召回服务（/v1/recall/list + /v1/recall/read）
+#   7. distill-service—— 提炼服务（二级 team dream）
+#   8. nginx          —— 反向代理，统一入口
+#
+# 使用：
+#   cp .env.example .env  # 修改默认密码与端口
+#   docker compose up -d
+#   docker compose ps     # 等待所有服务 healthy
+#
+# 健康检查：每服务都配了 healthcheck，nginx 依赖全部 healthy 后才启动。
+#
+# 数据卷：postgres / gitea / qdrant / 服务日志均挂持久卷，便于升级与备份。
+
+version: "3.9"
+
+x-teamharness-env: &teamharness-env
+  TEAMHARNESS_DEPLOY_MODE: docker-compose
+  TEAMHARNESS_IN_DOCKER: "true"
+  TEAMHARNESS_VERSION: ${TEAMHARNESS_VERSION:-1.0.0}
+  # 元数据库
+  TEAMHARNESS_META_DB: postgres
+  TEAMHARNESS_VECTOR_STORE: pgvector
+  TEAMHARNESS_GIT_PROVIDER: gitea
+  # PG 连接（psycopg3 同时支持同步与异步，sync/async 用同一 URL）
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-teamharness}:${POSTGRES_PASSWORD:-teamharness}@postgres:5432/${POSTGRES_DB:-teamharness}
+  DATABASE_SYNC_URL: postgresql+psycopg://${POSTGRES_USER:-teamharness}:${POSTGRES_PASSWORD:-teamharness}@postgres:5432/${POSTGRES_DB:-teamharness}
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: ${POSTGRES_USER:-teamharness}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-teamharness}
+  POSTGRES_DB: ${POSTGRES_DB:-teamharness}
+  # Gitea
+  GITEA_BASE_URL: http://gitea:3000
+  GITEA_TOKEN: ${GITEA_TOKEN:-}
+  GIT_REPO: teamharness/teamharness-shared
+  # Webhook secret（与 Gitea webhook 配置一致）
+  WEBHOOK_SECRET: ${WEBHOOK_SECRET:-change-me-in-prod}
+  # Qdrant（仅当 TEAMHARNESS_VECTOR_STORE=qdrant 时使用）
+  QDRANT_URL: http://qdrant:6333
+
+services:
+  # ---------------------------------------------------------------------------
+  # 元数据库 + 向量后端（PGVector 扩展）
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: teamharness-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-teamharness}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-teamharness}
+      POSTGRES_DB: ${POSTGRES_DB:-teamharness}
+      # 启用 pgvector 扩展（pgvector/pgvector 镜像已预装）
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-teamharness} -d ${POSTGRES_DB:-teamharness}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # 生产环境不暴露 postgres 端口，仅内部网络可达
+    # 开发环境如需调试，取消注释下行
+    # ports:
+    #   - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - teamharness-net
+
+  # ---------------------------------------------------------------------------
+  # Qdrant 向量库（可选；默认走 PGVector，留作切换选项）
+  # ---------------------------------------------------------------------------
+  qdrant:
+    image: qdrant/qdrant:v1.11.3
+    container_name: teamharness-qdrant
+    restart: unless-stopped
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/6333 && echo GET /healthz HTTP/1.1 >&3 && echo Host: localhost >&3 && echo >&3 && head -n 1 <&3 | grep -q 200'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    # 生产环境不暴露 qdrant 端口
+    # ports:
+    #   - "${QDRANT_PORT:-6333}:6333"
+    networks:
+      - teamharness-net
+
+  # ---------------------------------------------------------------------------
+  # Gitea 自托管 Git 服务（资产仓库 SSOT）
+  # ---------------------------------------------------------------------------
+  gitea:
+    image: gitea/gitea:1.22-rootless
+    container_name: teamharness-gitea
+    restart: unless-stopped
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      GITEA__server__DOMAIN: ${GITEA_DOMAIN:-localhost}
+      GITEA__server__ROOT_URL: http://${GITEA_DOMAIN:-localhost}:${GITEA_PORT:-3000}/
+      GITEA__server__HTTP_PORT: "3000"
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__security__SECRET_KEY: ${GITEA_SECRET_KEY:-change-me-in-prod}
+      # 禁用 Gitea 自带注册，避免暴露
+      GITEA__service__DISABLE_REGISTRATION: "true"
+    volumes:
+      - gitea-data:/var/lib/gitea
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    # 生产环境不暴露 gitea 端口（通过 nginx 代理或内部网络访问）
+    # 开发环境如需访问 gitea web UI，取消注释下行
+    # ports:
+    #   - "${GITEA_PORT:-3000}:3000"
+    #   - "${GITEA_SSH_PORT:-2222}:2222"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - teamharness-net
+
+  # ---------------------------------------------------------------------------
+  # 一次性初始化：创建 Gitea admin + teamharness-shared 仓库 + webhook
+  # ---------------------------------------------------------------------------
+  gitea-init:
+    image: gitea/gitea:1.22-rootless
+    container_name: teamharness-gitea-init
+    depends_on:
+      gitea:
+        condition: service_healthy
+    environment:
+      GITEA_ADMIN_USER: ${GITEA_ADMIN_USER:-teamharness}
+      GITEA_ADMIN_PASS: ${GITEA_ADMIN_PASS:-teamharness-admin}
+      GITEA_ADMIN_EMAIL: ${GITEA_ADMIN_EMAIL:-teamharness@example.com}
+      GITEA_ORG: teamharness
+      GITEA_REPO: teamharness-shared
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-change-me-in-prod}
+      GITEA_BASE_URL: http://gitea:3000
+      # 与 gitea 容器相同的 GITEA__ 变量，供 environment-to-ini 生成 config
+      GITEA__server__DOMAIN: ${GITEA_DOMAIN:-localhost}
+      GITEA__server__HTTP_PORT: "3000"
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__security__SECRET_KEY: ${GITEA_SECRET_KEY:-change-me-in-prod}
+      GITEA__service__DISABLE_REGISTRATION: "true"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        # 等待 Gitea 完全就绪
+        for i in $$(seq 1 30); do
+          curl -fsS http://gitea:3000/api/healthz && break || sleep 2
+        done
+        # rootless 镜像：用 environment-to-ini 从 GITEA__ 环境变量生成 config
+        export GITEA_WORK_DIR=/var/lib/gitea
+        export GITEA_CUSTOM=/var/lib/gitea/custom
+        export HOME=/var/lib/gitea/git
+        mkdir -p /var/lib/gitea/custom/conf
+        /usr/local/bin/environment-to-ini 2>/dev/null
+        # 用 Gitea CLI 创建 admin 用户（config 由 environment-to-ini 生成）
+        /usr/local/bin/gitea admin user create \
+          --config /var/lib/gitea/custom/conf/app.ini \
+          --admin \
+          --username "$${GITEA_ADMIN_USER}" \
+          --password "$${GITEA_ADMIN_PASS}" \
+          --email "$${GITEA_ADMIN_EMAIL}" \
+          --must-change-password=false 2>/dev/null || true
+        # 生成 admin token（用 Basic Auth，含全部所需 scope）
+        TOKEN=$$(curl -fsS -X POST http://gitea:3000/api/v1/users/$${GITEA_ADMIN_USER}/tokens \
+          -u "$${GITEA_ADMIN_USER}:$${GITEA_ADMIN_PASS}" \
+          -H "Content-Type: application/json" \
+          -d '{"name":"teamharness-deploy","scopes":["write:repository","write:admin","write:organization","write:user"]}' | sed -n 's/.*"sha1":"\([^"]*\)".*/\1/p')
+        # 写入共享卷供其他服务读取
+        echo "GITEA_TOKEN=$${TOKEN}" > /var/lib/gitea/teamharness-env
+        # 在 admin 用户名空间下创建仓库（不用 org，避免 org/user 名冲突）
+        curl -fsS -X POST http://gitea:3000/api/v1/user/repos \
+          -H "Authorization: token $${TOKEN}" \
+          -H "Content-Type: application/json" \
+          -d "{\"name\":\"$${GITEA_REPO}\",\"private\":true,\"default_branch\":\"main\",\"auto_init\":true}" || true
+        # 配置 webhook（指向 asset-service，订阅 push + pull_request 事件）
+        curl -fsS -X POST http://gitea:3000/api/v1/repos/$${GITEA_ORG}/$${GITEA_REPO}/hooks \
+          -H "Authorization: token $${TOKEN}" \
+          -H "Content-Type: application/json" \
+          -d "{\"type\":\"gitea\",\"active\":true,\"events\":[\"push\",\"pull_request\"],\"config\":{\"url\":\"http://asset-service:8080/v1/webhook/git\",\"content_type\":\"json\",\"secret\":\"$${WEBHOOK_SECRET}\"}}" || true
+        # 配置 main 分支保护：禁止直接 push，必须 PR + 至少 1 人审批
+        curl -fsS -X POST http://gitea:3000/api/v1/repos/$${GITEA_ORG}/$${GITEA_REPO}/branch_protections \
+          -H "Authorization: token $${TOKEN}" \
+          -H "Content-Type: application/json" \
+          -d '{"rule_name":"main","enable_push":false,"enable_push_whitelist":false,"require_signed_commits":false,"required_approvals":1,"enable_status_check":false}' || true
+        # 通过 API 创建 CODEOWNERS 文件（tool/rule 资产强制 owner 审批）
+        CODEOWNERS_B64=$$(printf '# tool/rule 资产变更需 owner 审批\n/tools/ @%s\n/rules/ @%s\n' "$${GITEA_ADMIN_USER}" "$${GITEA_ADMIN_USER}" | base64 -w 0)
+        curl -fsS -X POST http://gitea:3000/api/v1/repos/$${GITEA_ORG}/$${GITEA_REPO}/contents/CODEOWNERS \
+          -H "Authorization: token $${TOKEN}" \
+          -H "Content-Type: application/json" \
+          -d "{\"message\":\"Add CODEOWNERS\",\"content\":\"$${CODEOWNERS_B64}\"}" || true
+        echo "Gitea 初始化完成（含分支保护 + CODEOWNERS + PR webhook）"
+    volumes:
+      - gitea-data:/var/lib/gitea
+    networks:
+      - teamharness-net
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # 三服务：asset-service / recall-service / distill-service
+  # 共用同一镜像，通过 TEAMHARNESS_SERVICE_ROLE 启动不同 FastAPI app
+  # ---------------------------------------------------------------------------
+  asset-service:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: teamharness/server:${TEAMHARNESS_VERSION:-1.0.0}
+    container_name: teamharness-asset-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gitea-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *teamharness-env
+      TEAMHARNESS_SERVICE_ROLE: asset
+      # 资产服务监听 8080
+      UVICORN_PORT: "8080"
+    command: ["--role", "asset", "--host", "0.0.0.0", "--port", "8080"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8080/v1/system/selfcheck').status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - asset-logs:/var/log/teamharness
+    networks:
+      - teamharness-net
+
+  recall-service:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: teamharness/server:${TEAMHARNESS_VERSION:-1.0.0}
+    container_name: teamharness-recall-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      asset-service:
+        condition: service_healthy
+    environment:
+      <<: *teamharness-env
+      TEAMHARNESS_SERVICE_ROLE: recall
+      UVICORN_PORT: "8081"
+    command: ["--role", "recall", "--host", "0.0.0.0", "--port", "8081"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8081/v1/system/selfcheck').status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - recall-logs:/var/log/teamharness
+    networks:
+      - teamharness-net
+
+  distill-service:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: teamharness/server:${TEAMHARNESS_VERSION:-1.0.0}
+    container_name: teamharness-distill-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      asset-service:
+        condition: service_healthy
+    environment:
+      <<: *teamharness-env
+      TEAMHARNESS_SERVICE_ROLE: distill
+      UVICORN_PORT: "8082"
+      # LLM Provider（按需配置）
+      # LLM_PROVIDER: openai（默认，兼容 OpenAI/DeepSeek/Moonshot 等）/ anthropic
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+    command: ["--role", "distill", "--host", "0.0.0.0", "--port", "8082"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8082/v1/system/selfcheck').status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - distill-logs:/var/log/teamharness
+    networks:
+      - teamharness-net
+
+  # ---------------------------------------------------------------------------
+  # 反向代理 + 前端静态托管：统一入口（默认 8080）
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: teamharness/frontend:${TEAMHARNESS_VERSION:-1.0.0}
+    build:
+      context: ..
+      dockerfile: deploy/frontend.Dockerfile
+    container_name: teamharness-nginx
+    restart: unless-stopped
+    depends_on:
+      asset-service:
+        condition: service_healthy
+      recall-service:
+        condition: service_healthy
+      distill-service:
+        condition: service_healthy
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - teamharness-net
+
+volumes:
+  postgres-data:
+  qdrant-data:
+  gitea-data:
+  asset-logs:
+  recall-logs:
+  distill-logs:
+
+networks:
+  teamharness-net:
+    driver: bridge

@@ -1,0 +1,198 @@
+TeamHarness Asset Service Compatibility Test Report
+Run time: 2026-08-11 15:10:01
+BaseUrl: http://localhost:8080
+API Key: th_7f92c91bdaee77cc4e0ce1ea8826e204
+======================================================================
+Summary: PASS=57  FAIL=3  SKIP=3  Total=63
+======================================================================
+
+===== Detailed results =====
+[PASS] CT: application/json (standard)
+        Expected: 200
+        Actual:   200
+[PASS] CT: application/json; charset=utf-8
+        Expected: 200
+        Actual:   200
+[PASS] CT: text/plain (expect 422/400)
+        Expected: 422/400
+        Actual:   422
+[PASS] CT: application/x-www-form-urlencoded (expect 422/400)
+        Expected: 422/400
+        Actual:   422
+[PASS] CT: multipart/form-data (expect 422/400)
+        Expected: 422/400
+        Actual:   422
+[PASS] CT: missing Content-Type (expect 422/400)
+        Expected: 422/400
+        Actual:   422
+[PASS] GET /v1/assets should be 200
+        Expected: 200
+        Actual:   200
+[PASS] POST /v1/assets should be 405 (not implemented)
+        Expected: 405
+        Actual:   405
+[PASS] PUT /v1/assets/{id}/scope should be 405
+        Expected: 405
+        Actual:   405
+[PASS] DELETE /v1/assets/{id} should be 405 (not implemented)
+        Expected: 405
+        Actual:   405
+[FAIL] OPTIONS /v1/assets (CORS preflight) should be 200/204
+        Expected: 200/204
+        Actual:   405
+[PASS] HEAD /v1/assets should be 200/405
+        Expected: 200/405
+        Actual:   405
+[PASS] PATCH /v1/assets/{id}/scope should be 200
+        Expected: 200
+        Actual:   200
+[PASS] GET /v1/assets/ (trailing slash) should be 200/307/301
+        Expected: 200/307/301
+        Actual:   307
+[PASS] GET /V1/Assets (case) should be 200/307/404
+        Expected: 200/307/301/404
+        Actual:   200
+[PASS] GET /v1//assets (double slash) should be 200/404
+        Expected: 200/404
+        Actual:   404
+[FAIL] GET /v1/assets/../../../etc/passwd (traversal) should be 400/404/422
+        Expected: 400/404/422
+        Actual:   200
+[PASS] Success response Content-Type should contain application/json
+        Expected: contains 'application/json'
+        Actual:   application/json
+[PASS] 405 error response Content-Type should contain application/json
+        Expected: contains 'application/json'
+        Actual:   application/json
+[PASS] Error response body should have 'detail' field
+        Expected: {"detail":"xxx"}
+        Actual:   {"detail":"Method Not Allowed"}
+[PASS] GET non-existent asset should be 404
+        Expected: 404
+        Actual:   404
+[PASS] 404 error response body should have 'detail' field
+        Expected: {"detail":"xxx"}
+        Actual:   {"detail":"资产不存在：non-existent-id-zzz-12345"}
+[PASS] PATCH invalid scope should be 400
+        Expected: 400
+        Actual:   400
+[PASS] POST non-JSON body should be 422/400
+        Expected: 422/400
+        Actual:   422
+[PASS] POST missing fields should be 422
+        Expected: 422
+        Actual:   422
+[PASS] 422 error response body should have 'detail' field
+        Expected: {"detail":[...]}
+        Actual:   {"detail":[{"type":"missing","loc":["body","api_key"],"msg":"Field required","input":{}}]}
+[PASS] GET /v1/assets should not return 500
+        Expected: not 500
+        Actual:   200
+[SKIP] OPTIONS response has Access-Control-Allow-Origin
+        Expected: present
+        Actual:   CORS not configured (acceptable)
+[SKIP] Response has X-Request-ID header
+        Expected: present
+        Actual:   not configured (acceptable)
+[PASS] [Chrome-Windows] GET / HTML should be 200
+        Expected: 200
+        Actual:   200
+[PASS] [Chrome-Windows] GET /v1/assets API should be 200
+        Expected: 200
+        Actual:   200
+[PASS] [Edge-Windows] GET / HTML should be 200
+        Expected: 200
+        Actual:   200
+[PASS] [Edge-Windows] GET /v1/assets API should be 200
+        Expected: 200
+        Actual:   200
+[PASS] [Firefox-Windows] GET / HTML should be 200
+        Expected: 200
+        Actual:   200
+[PASS] [Firefox-Windows] GET /v1/assets API should be 200
+        Expected: 200
+        Actual:   200
+[PASS] [Safari-Mac] GET / HTML should be 200
+        Expected: 200
+        Actual:   200
+[PASS] [Safari-Mac] GET /v1/assets API should be 200
+        Expected: 200
+        Actual:   200
+[PASS] [Chrome-Android] GET / HTML should be 200
+        Expected: 200
+        Actual:   200
+[PASS] [Chrome-Android] GET /v1/assets API should be 200
+        Expected: 200
+        Actual:   200
+[PASS] [Safari-iPhone] GET / HTML should be 200
+        Expected: 200
+        Actual:   200
+[PASS] [Safari-iPhone] GET /v1/assets API should be 200
+        Expected: 200
+        Actual:   200
+[PASS] GET / should be 200
+        Expected: 200
+        Actual:   200
+[PASS] GET / Content-Type should contain text/html
+        Expected: contains 'text/html'
+        Actual:   text/html
+[PASS] GET /index.html should be 200
+        Expected: 200
+        Actual:   200
+[PASS] GET /index.html Content-Type should contain text/html
+        Expected: contains 'text/html'
+        Actual:   text/html
+[PASS] GET /app.js should be 200
+        Expected: 200
+        Actual:   200
+[PASS] GET /app.js Content-Type should contain javascript
+        Expected: contains 'javascript'
+        Actual:   application/javascript
+[PASS] GET /services/api.js should be 200
+        Expected: 200
+        Actual:   200
+[PASS] GET /services/api.js Content-Type should contain javascript
+        Expected: contains 'javascript'
+        Actual:   application/javascript
+[PASS] GET /services/utils.js should be 200
+        Expected: 200
+        Actual:   200
+[PASS] GET /services/utils.js Content-Type should contain javascript
+        Expected: contains 'javascript'
+        Actual:   application/javascript
+[PASS] HTML referenced resource 'app.js' should be 200
+        Expected: 200
+        Actual:   200
+[PASS] HTML referenced resource 'services/api.js' should be 200
+        Expected: 200
+        Actual:   200
+[PASS] HTML referenced resource 'services/utils.js' should be 200
+        Expected: 200
+        Actual:   200
+[PASS] CDN reachable: https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js
+        Expected: 200
+        Actual:   200
+[PASS] CDN reachable: https://unpkg.com/element-plus@2.6.3/dist/index.css
+        Expected: 200
+        Actual:   200
+[PASS] CDN reachable: https://unpkg.com/element-plus@2.6.3/dist/index.full.min.js
+        Expected: 200
+        Actual:   200
+[PASS] CDN reachable: https://unpkg.com/@element-plus/icons-vue@2.3.1/dist/index.iife.min.js
+        Expected: 200
+        Actual:   200
+[SKIP] Viewport/responsive (multi-resolution)
+        Expected: Playwright
+        Actual:   npx not available, manual test needed
+[PASS] Asset content should contain Chinese (UTF-8 OK)
+        Expected: True
+        Actual:   True
+[FAIL] API response Content-Type should include charset=utf-8
+        Expected: charset=utf-8
+        Actual:   application/json
+[PASS] POST body with emoji/CJK should be parseable (200) or business-validated (422/400)
+        Expected: 200/422/400
+        Actual:   200
+[PASS] Error response Chinese detail should be UTF-8 OK
+        Expected: True
+        Actual:   True

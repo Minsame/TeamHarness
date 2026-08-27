@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamHarness 规则库管理</title>
+    <!-- Vue 3（本地化，避免浏览器跟踪防护拦截 CDN） -->
+    <script src="/vendor/vue.global.prod.js"></script>
+    <!-- Element Plus -->
+    <link rel="stylesheet" href="/vendor/element-plus.css">
+    <script src="/vendor/element-plus.full.min.js"></script>
+    <!-- Element Plus Icons -->
+    <script src="/vendor/element-plus-icons-vue.iife.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+        #app { min-height: 100vh; }
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .login-card {
+            width: 420px;
+            padding: 40px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .login-title {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            color: #303133;
+        }
+        .login-subtitle {
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #909399;
+        }
+        .app-header {
+            background: #fff;
+            border-bottom: 1px solid #e4e7ed;
+            padding: 0 24px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .app-title { font-size: 18px; font-weight: 600; color: #303133; }
+        .app-body { display: flex; min-height: calc(100vh - 60px); }
+        .app-sidebar {
+            width: 220px;
+            background: #fff;
+            border-right: 1px solid #e4e7ed;
+            padding: 16px 0;
+        }
+        .app-main {
+            flex: 1;
+            padding: 24px;
+            background: #f5f7fa;
+            overflow-y: auto;
+        }
+        .stats-card { margin-bottom: 20px; }
+        .stats-card .el-card__body { padding: 20px; }
+        .scope-tag-private { background: #f4f4f5; color: #909399; border-color: #e9e9eb; }
+        .scope-tag-team { background: #ecf5ff; color: #409eff; border-color: #d9ecff; }
+        .scope-tag-restricted { background: #fdf6ec; color: #e6a23c; border-color: #faecd8; }
+        .scope-tag-public { background: #f0f9eb; color: #67c23a; border-color: #e1f3d8; }
+        .content-preview {
+            max-height: 120px;
+            overflow-y: auto;
+            background: #f5f7fa;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #606266;
+            white-space: pre-wrap;
+            font-family: "Consolas", "Monaco", monospace;
+        }
+        .filter-bar {
+            background: #fff;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .table-container {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .pagination-bar {
+            margin-top: 16px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        /* 聊天式对话 */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 620px;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .chat-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e4e7ed;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fff;
+        }
+        .chat-status { font-size: 13px; color: #909399; }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f5f7fa;
+        }
+        .chat-empty { text-align: center; color: #c0c4cc; margin-top: 100px; font-size: 14px; }
+        .chat-msg { display: flex; margin-bottom: 14px; }
+        .chat-msg-out { justify-content: flex-end; }
+        .chat-msg-in { justify-content: flex-start; }
+        .chat-bubble {
+            max-width: 72%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+        .chat-msg-out .chat-bubble { background: #409eff; color: #fff; border-bottom-right-radius: 4px; }
+        .chat-msg-in .chat-bubble { background: #fff; color: #303133; border: 1px solid #e4e7ed; border-bottom-left-radius: 4px; }
+        .chat-sender { font-size: 12px; color: #909399; margin-bottom: 4px; }
+        .chat-content { font-size: 14px; line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
+        .chat-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 11px;
+        }
+        .chat-msg-out .chat-meta { justify-content: flex-end; color: rgba(255,255,255,0.85); }
+        .chat-msg-in .chat-meta { color: #909399; }
+        .chat-input {
+            padding: 12px 16px;
+            border-top: 1px solid #e4e7ed;
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            background: #fff;
+        }
+        .chat-input .el-button { height: 40px; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <!-- 登录页 -->
+    <div v-if="!loggedIn" class="login-container">
+        <div class="login-card">
+            <div class="login-title">TeamHarness 规则库管理</div>
+            <div class="login-subtitle">输入成员 ID 与 API Key 登录</div>
+            <el-form :model="loginForm" label-width="80px" @submit.prevent="handleLogin">
+                <el-form-item label="成员 ID">
+                    <el-input v-model="loginForm.memberId" placeholder="如：alice" clearable></el-input>
+                </el-form-item>
+                <el-form-item label="API Key">
+                    <el-input v-model="loginForm.apiKey" placeholder="th_ 开头" show-password clearable></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="handleLogin" :loading="loginLoading" style="width: 100%">登录</el-button>
+                </el-form-item>
+                <el-form-item>
+                    <el-button text @click="showIssueDialog = true" style="width: 100%">没有 Key？在此颁发</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+    </div>
+
+    <!-- 颁发 API Key 对话框 -->
+    <el-dialog v-model="showIssueDialog" title="颁发 API Key" width="480px">
+        <el-form :model="issueForm" label-width="80px">
+            <el-form-item label="成员 ID">
+                <el-input v-model="issueForm.memberId" placeholder="如：alice"></el-input>
+            </el-form-item>
+            <el-form-item label="Agent ID">
+                <el-input v-model="issueForm.agentId" placeholder="如：agent-alice（可留空自动生成）"></el-input>
+            </el-form-item>
+            <el-form-item label="成员标签">
+                <el-select
+                    v-model="issueForm.tags"
+                    multiple
+                    filterable
+                    allow-create
+                    default-first-option
+                    placeholder="选择或输入标签（如：前端/后端）"
+                    style="width: 100%"
+                >
+                    <el-option v-for="t in tagSuggestions" :key="t" :label="t" :value="t" />
+                </el-select>
+                <div style="color: #909399; font-size: 12px; margin-top: 4px">至少选择一个标签，可输入自定义标签</div>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="showIssueDialog = false">取消</el-button>
+            <el-button type="primary" @click="handleIssueKey" :loading="issueLoading">颁发</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 主界面 -->
+    <template v-if="loggedIn">
+        <div class="app-header">
+            <div class="app-title">TeamHarness 规则库管理</div>
+            <div>
+                <el-tag type="info" style="margin-right: 12px">成员：{{ currentMember }}</el-tag>
+                <el-button text @click="logout">退出</el-button>
+            </div>
+        </div>
+        <div class="app-body">
+            <div class="app-sidebar">
+                <el-menu :default-active="activeMenu" @select="handleMenuSelect">
+                    <el-menu-item index="my">
+                        <el-icon><Folder /></el-icon>
+                        <span>我的规则库</span>
+                    </el-menu-item>
+                    <el-menu-item index="shared">
+                        <el-icon><Share /></el-icon>
+                        <span>共享库</span>
+                    </el-menu-item>
+                    <el-menu-item index="share-mgmt">
+                        <el-icon><Setting /></el-icon>
+                        <span>共享管理</span>
+                    </el-menu-item>
+                    <el-menu-item index="graph">
+                        <el-icon><Connection /></el-icon>
+                        <span>资产图谱</span>
+                    </el-menu-item>
+                    <el-menu-item index="acl">
+                        <el-icon><Lock /></el-icon>
+                        <span>ACL 授权</span>
+                    </el-menu-item>
+                    <el-menu-item index="dashboard">
+                        <el-icon><DataAnalysis /></el-icon>
+                        <span>治理看板</span>
+                    </el-menu-item>
+                    <el-menu-item index="comm">
+                        <el-icon><ChatDotRound /></el-icon>
+                        <span>影子通信</span>
+                    </el-menu-item>
+                    <el-menu-item index="team" v-if="currentRole === 'admin'">
+                        <el-icon><Share /></el-icon>
+                        <span>团队管理</span>
+                    </el-menu-item>
+                    <el-menu-item index="members" v-if="currentRole === 'admin'">
+                        <el-icon><User /></el-icon>
+                        <span>成员管理</span>
+                    </el-menu-item>
+                </el-menu>
+            </div>
+            <div class="app-main">
+                <!-- 我的规则库 -->
+                <template v-if="activeMenu === 'my'">
+                    <div class="filter-bar">
+                        <el-select v-model="myFilter.type" placeholder="类型" clearable style="width: 120px" @change="loadMyAssets">
+                            <el-option label="全部" value=""></el-option>
+                            <el-option label="rule 规则" value="rule"></el-option>
+                            <el-option label="memory 记忆" value="memory"></el-option>
+                            <el-option label="skill 技能" value="skill"></el-option>
+                            <el-option label="tool 工具" value="tool"></el-option>
+                            <el-option label="prompt 提示词" value="prompt"></el-option>
+                        </el-select>
+                        <el-select v-model="myFilter.scope" placeholder="共享范围" clearable style="width: 140px" @change="loadMyAssets">
+                            <el-option label="全部" value=""></el-option>
+                            <el-option label="private 私有" value="private"></el-option>
+                            <el-option label="team 团队" value="team"></el-option>
+                            <el-option label="restricted 受限" value="restricted"></el-option>
+                            <el-option label="public 公开" value="public"></el-option>
+                        </el-select>
+                        <el-input v-model="myFilter.category" placeholder="分类筛选" clearable style="width: 160px" @change="loadMyAssets"></el-input>
+                        <el-input v-model="myFilter.modulePath" placeholder="模块路径" clearable style="width: 180px" @change="loadMyAssets"></el-input>
+                        <el-button type="primary" @click="loadMyAssets" :icon="Refresh">刷新</el-button>
+                    </div>
+                    <div class="table-container">
+                        <el-table :data="myAssets" v-loading="myLoading" border stripe style="width: 100%">
+                            <el-table-column prop="id" label="ID" width="180" show-overflow-tooltip></el-table-column>
+                            <el-table-column prop="type" label="类型" width="90">
+                                <template #default="{ row }">
+                                    <el-tag size="small" :type="typeTagType(row.type)">{{ row.type }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="scope" label="共享范围" width="110">
+                                <template #default="{ row }">
+                                    <el-tag size="small" :class="'scope-tag-' + row.scope">{{ scopeLabel(row.scope) }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="category" label="分类" width="130" show-overflow-tooltip>
+                                <template #default="{ row }">{{ row.category || '—' }}</template>
+                            </el-table-column>
+                            <el-table-column prop="module_path" label="模块路径" width="180" show-overflow-tooltip>
+                                <template #default="{ row }">{{ row.module_path || '—' }}</template>
+                            </el-table-column>
+                            <el-table-column prop="version" label="版本" width="80"></el-table-column>
+                            <el-table-column prop="status" label="状态" width="90">
+                                <template #default="{ row }">
+                                    <el-tag size="small" :type="row.status === 'active' ? 'success' : 'info'">{{ row.status }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="updated_at" label="更新时间" width="160">
+                                <template #default="{ row }">{{ formatDate(row.updated_at) }}</template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="240" fixed="right">
+                                <template #default="{ row }">
+                                    <el-button size="small" @click="showDetail(row)">详情</el-button>
+                                    <el-button size="small" type="primary" @click="showScopeDialog(row)">共享</el-button>
+                                    <el-button size="small" type="warning" @click="showLinksDialog(row)">关联</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <div class="pagination-bar">
+                            <el-pagination
+                                v-model:current-page="myPage.page"
+                                v-model:page-size="myPage.size"
+                                :total="myPage.total"
+                                :page-sizes="[20, 50, 100]"
+                                layout="total, sizes, prev, pager, next"
+                                @size-change="loadMyAssets"
+                                @current-change="loadMyAssets"
+                            ></el-pagination>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- 共享库 -->
+                <template v-if="activeMenu === 'shared'">
+                    <div class="filter-bar">
+                        <el-select v-model="sharedFilter.scope" placeholder="共享范围" clearable style="width: 140px" @change="loadSharedAssets">
+                            <el-option label="全部共享" value=""></el-option>
+                            <el-option label="team 团队" value="team"></el-option>
+                            <el-option label="restricted 受限" value="restricted"></el-option>
+                            <el-option label="public 公开" value="public"></el-option>
+                        </el-select>
+                        <el-select v-model="sharedFilter.type" placeholder="类型" clearable style="width: 120px" @change="loadSharedAssets">
+                            <el-option label="全部" value=""></el-option>
+                            <el-option label="rule" value="rule"></el-option>
+                            <el-option label="memory" value="memory"></el-option>
+                            <el-option label="skill" value="skill"></el-option>
+                            <el-option label="tool" value="tool"></el-option>
+                            <el-option label="prompt" value="prompt"></el-option>
+                        </el-select>
+                        <el-input v-model="sharedFilter.owner" placeholder="所有者筛选" clearable style="width: 140px" @change="loadSharedAssets"></el-input>
+                        <el-input v-model="sharedFilter.category" placeholder="分类筛选" clearable style="width: 160px" @change="loadSharedAssets"></el-input>
+                        <el-button type="primary" @click="loadSharedAssets" :icon="Refresh">刷新</el-button>
+                    </div>
+                    <div class="table-container">
+                        <el-table :data="sharedAssets" v-loading="sharedLoading" border stripe style="width: 100%">
+                            <el-table-column prop="id" label="ID" width="180" show-overflow-tooltip></el-table-column>
+                            <el-table-column prop="owner" label="所有者" width="100"></el-table-column>
+                            <el-table-column prop="type" label="类型" width="90">
+                                <template #default="{ row }">
+                                    <el-tag size="small" :type="typeTagType(row.type)">{{ row.type }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="scope" label="共享范围" width="110">
+                                <template #default="{ row }">
+                                    <el-tag size="small" :class="'scope-tag-' + row.scope">{{ scopeLabel(row.scope) }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="category" label="分类" width="130" show-overflow-tooltip>
+                                <template #default="{ row }">{{ row.category || '—' }}</template>
+                            </el-table-column>
+                            <el-table-column prop="module_path" label="模块路径" width="180" show-overflow-tooltip>
+                                <template #default="{ row }">{{ row.module_path || '—' }}</template>
+                            </el-table-column>
+                            <el-table-column prop="content_preview" label="内容预览" min-width="200" show-overflow-tooltip>
+                                <template #default="{ row }">{{ row.content_preview.substring(0, 80) }}{{ row.content_preview.length > 80 ? '...' : '' }}</template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="100" fixed="right">
+                                <template #default="{ row }">
+                                    <el-button size="small" @click="showDetail(row)">详情</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <div class="pagination-bar">
+                            <el-pagination
+                                v-model:current-page="sharedPage.page"
+                                v-model:page-size="sharedPage.size"
+                                :total="sharedPage.total"
+                                :page-sizes="[20, 50, 100]"
+                                layout="total, sizes, prev, pager, next"
+                                @size-change="loadSharedAssets"
+                                @current-change="loadSharedAssets"
+                            ></el-pagination>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- 共享管理 -->
+                <template v-if="activeMenu === 'share-mgmt'">
+                    <el-alert
+                        title="选择性共享管理"
+                        type="info"
+                        description="在此页面批量修改个人资产的共享范围。private=仅自己可见，team=团队共享，restricted=受限访问，public=完全公开。"
+                        show-icon
+                        :closable="false"
+                        style="margin-bottom: 16px"
+                    ></el-alert>
+                    <div class="filter-bar">
+                        <el-select v-model="shareMgmtFilter.scope" placeholder="当前共享范围" clearable style="width: 160px" @change="loadShareMgmtAssets">
+                            <el-option label="全部" value=""></el-option>
+                            <el-option label="private 私有" value="private"></el-option>
+                            <el-option label="team 团队" value="team"></el-option>
+                            <el-option label="restricted 受限" value="restricted"></el-option>
+                            <el-option label="public 公开" value="public"></el-option>
+                        </el-select>
+                        <el-button type="primary" @click="loadShareMgmtAssets" :icon="Refresh">刷新</el-button>
+                        <el-button
+                            type="success"
+                            :disabled="shareMgmtSelection.length === 0"
+                            @click="showBatchScopeDialog"
+                        >
+                            批量修改共享（已选 {{ shareMgmtSelection.length }} 项）
+                        </el-button>
+                    </div>
+                    <div class="table-container">
+                        <el-table
+                            :data="shareMgmtAssets"
+                            v-loading="shareMgmtLoading"
+                            border
+                            stripe
+                            style="width: 100%"
+                            @selection-change="handleShareMgmtSelectionChange"
+                        >
+                            <el-table-column type="selection" width="50"></el-table-column>
+                            <el-table-column prop="id" label="ID" width="180" show-overflow-tooltip></el-table-column>
+                            <el-table-column prop="type" label="类型" width="90">
+                                <template #default="{ row }">
+                                    <el-tag size="small" :type="typeTagType(row.type)">{{ row.type }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="scope" label="当前共享" width="120">
+                                <template #default="{ row }">
+                                    <el-tag size="small" :class="'scope-tag-' + row.scope">{{ scopeLabel(row.scope) }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="category" label="分类" width="130" show-overflow-tooltip>
+                                <template #default="{ row }">{{ row.category || '—' }}</template>
+                            </el-table-column>
+                            <el-table-column prop="module_path" label="模块路径" width="180" show-overflow-tooltip>
+                                <template #default="{ row }">{{ row.module_path || '—' }}</template>
+                            </el-table-column>
+                            <el-table-column prop="content_preview" label="内容预览" min-width="250" show-overflow-tooltip></el-table-column>
+                            <el-table-column label="操作" width="140" fixed="right">
+                                <template #default="{ row }">
+                                    <el-select
+                                        :model-value="row.scope"
+                                        size="small"
+                                        style="width: 110px"
+                                        @change="(val) => quickChangeScope(row, val)"
+                                    >
+                                        <el-option label="私有" value="private"></el-option>
+                                        <el-option label="团队" value="team"></el-option>
+                                        <el-option label="受限" value="restricted"></el-option>
+                                        <el-option label="公开" value="public"></el-option>
+                                    </el-select>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                </template>
+
+                <!-- 资产图谱 -->
+                <template v-if="activeMenu === 'graph'">
+                    <el-alert
+                        title="资产图谱"
+                        type="info"
+                        description="输入资产 ID 与遍历深度，BFS 多跳展开关联资产（derived_from / supersedes / related_to / module_parent / triggers）。"
+                        show-icon
+                        :closable="false"
+                        style="margin-bottom: 16px"
+                    ></el-alert>
+                    <div class="filter-bar">
+                        <el-input v-model="graphRootId" placeholder="根资产 ID" clearable style="width: 280px"></el-input>
+                        <el-select v-model="graphDepth" style="width: 120px">
+                            <el-option label="深度 1（直接关联）" :value="1"></el-option>
+                            <el-option label="深度 2" :value="2"></el-option>
+                            <el-option label="深度 3" :value="3"></el-option>
+                        </el-select>
+                        <el-button type="primary" @click="loadGraph" :loading="graphLoading" :icon="Refresh">遍历</el-button>
+                    </div>
+                    <div class="table-container" style="padding: 16px">
+                        <div v-if="!graphData" style="color: #c0c4cc; text-align: center; padding: 40px">
+                            输入根资产 ID 并点击「遍历」查看图谱
+                        </div>
+                        <div v-else v-loading="graphLoading">
+                            <el-descriptions :column="3" border size="small" style="margin-bottom: 16px">
+                                <el-descriptions-item label="根资产">{{ graphData.root_asset_id }}</el-descriptions-item>
+                                <el-descriptions-item label="遍历深度">{{ graphData.depth }}</el-descriptions-item>
+                                <el-descriptions-item label="节点数 / 边数">{{ graphData.nodes.length }} / {{ graphData.edges.length }}</el-descriptions-item>
+                            </el-descriptions>
+                            <el-row :gutter="16">
+                                <el-col :span="14">
+                                    <el-card shadow="never">
+                                        <template #header>节点（{{ graphData.nodes.length }}）</template>
+                                        <el-table :data="graphData.nodes" border stripe size="small" max-height="420">
+                                            <el-table-column prop="id" label="ID" width="200" show-overflow-tooltip></el-table-column>
+                                            <el-table-column prop="type" label="类型" width="80">
+                                                <template #default="{ row }">
+                                                    <el-tag size="small" :type="typeTagType(row.type)">{{ row.type }}</el-tag>
+                                                </template>
+                                            </el-table-column>
+                                            <el-table-column prop="owner" label="所有者" width="100"></el-table-column>
+                                            <el-table-column prop="category" label="分类" width="120" show-overflow-tooltip>
+                                                <template #default="{ row }">{{ row.category || '—' }}</template>
+                                            </el-table-column>
+                                            <el-table-column prop="module_path" label="模块路径" min-width="160" show-overflow-tooltip></el-table-column>
+                                        </el-table>
+                                    </el-card>
+                                </el-col>
+                                <el-col :span="10">
+                                    <el-card shadow="never">
+                                        <template #header>边（{{ graphData.edges.length }}）</template>
+                                        <el-table :data="graphData.edges" border stripe size="small" max-height="420">
+                                            <el-table-column prop="src" label="源" width="160" show-overflow-tooltip></el-table-column>
+                                            <el-table-column prop="link_type" label="类型" width="120">
+                                                <template #default="{ row }">
+                                                    <el-tag size="small" type="warning">{{ linkTypeLabel(row.link_type) }}</el-tag>
+                                                </template>
+                                            </el-table-column>
+                                            <el-table-column prop="dst" label="目标" min-width="160" show-overflow-tooltip></el-table-column>
+                                        </el-table>
+                                    </el-card>
+                                </el-col>
+                            </el-row>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- ACL 授权 -->
+                <template v-if="activeMenu === 'acl'">
+                    <el-alert
+                        title="ACL 精准授权"
+                        type="info"
+                        description="仅对 restricted 资产生效。可对指定 user / agent / role 授予 read / execute / admin 权限。"
+                        show-icon
+                        :closable="false"
+                        style="margin-bottom: 16px"
+                    ></el-alert>
+                    <div class="filter-bar">
+                        <el-button type="primary" @click="loadAclAssets" :loading="aclLoading" :icon="Refresh">刷新我的受限资产</el-button>
+                    </div>
+                    <div class="table-container">
+                        <el-table :data="aclAssets" v-loading="aclLoading" border stripe style="width: 100%">
+                            <el-table-column prop="id" label="ID" width="200" show-overflow-tooltip></el-table-column>
+                            <el-table-column prop="type" label="类型" width="90">
+                                <template #default="{ row }">
+                                    <el-tag size="small" :type="typeTagType(row.type)">{{ row.type }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="category" label="分类" width="130" show-overflow-tooltip>
+                                <template #default="{ row }">{{ row.category || '—' }}</template>
+                            </el-table-column>
+                            <el-table-column prop="module_path" label="模块路径" width="200" show-overflow-tooltip>
+                                <template #default="{ row }">{{ row.module_path || '—' }}</template>
+                            </el-table-column>
+                            <el-table-column prop="content_preview" label="内容预览" min-width="240" show-overflow-tooltip></el-table-column>
+                            <el-table-column label="操作" width="140" fixed="right">
+                                <template #default="{ row }">
+                                    <el-button size="small" type="primary" @click="showAclDialog(row)">管理 ACL</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                </template>
+
+                <!-- 治理看板 -->
+                <template v-if="activeMenu === 'dashboard'">
+                    <el-row :gutter="20" style="margin-bottom: 20px">
+                        <el-col :span="6">
+                            <el-card class="stats-card">
+                                <div style="color: #909399; font-size: 14px">我的资产总数</div>
+                                <div style="font-size: 32px; font-weight: 600; color: #409eff; margin-top: 8px">{{ memberStats.total }}</div>
+                            </el-card>
+                        </el-col>
+                        <el-col :span="6">
+                            <el-card class="stats-card">
+                                <div style="color: #909399; font-size: 14px">私有资产</div>
+                                <div style="font-size: 32px; font-weight: 600; color: #909399; margin-top: 8px">{{ memberStats.by_scope.private || 0 }}</div>
+                            </el-card>
+                        </el-col>
+                        <el-col :span="6">
+                            <el-card class="stats-card">
+                                <div style="color: #909399; font-size: 14px">团队共享</div>
+                                <div style="font-size: 32px; font-weight: 600; color: #67c23a; margin-top: 8px">{{ memberStats.by_scope.team || 0 }}</div>
+                            </el-card>
+                        </el-col>
+                        <el-col :span="6">
+                            <el-card class="stats-card">
+                                <div style="color: #909399; font-size: 14px">公开资产</div>
+                                <div style="font-size: 32px; font-weight: 600; color: #e6a23c; margin-top: 8px">{{ memberStats.by_scope.public || 0 }}</div>
+                            </el-card>
+                        </el-col>
+                    </el-row>
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-card>
+                                <template #header>按类型分布</template>
+                                <div v-if="Object.keys(memberStats.by_type).length === 0" style="color: #c0c4cc; text-align: center; padding: 20px">暂无数据</div>
+                                <div v-else>
+                                    <div v-for="(count, type) in memberStats.by_type" :key="type" style="margin-bottom: 12px">
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px">
+                                            <span>{{ type }}</span>
+                                            <span style="font-weight: 600">{{ count }}</span>
+                                        </div>
+                                        <el-progress :percentage="Math.round(count / memberStats.total * 100)" :color="typeTagType(type)"></el-progress>
+                                    </div>
+                                </div>
+                            </el-card>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-card>
+                                <template #header>按模块分布（Top 10）</template>
+                                <div v-if="Object.keys(memberStats.by_module).length === 0" style="color: #c0c4cc; text-align: center; padding: 20px">暂无数据</div>
+                                <div v-else>
+                                    <div v-for="(count, mod) in memberStats.by_module" :key="mod" style="margin-bottom: 8px">
+                                        <div style="display: flex; justify-content: space-between">
+                                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px">{{ mod }}</span>
+                                            <span style="font-weight: 600; margin-left: 12px">{{ count }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </el-card>
+                        </el-col>
+                    </el-row>
+                </template>
+
+                <!-- 影子通信 -->
+                <template v-if="activeMenu === 'comm'">
+                    <el-tabs v-model="commTab" @tab-change="handleCommTabChange">
+                        <!-- Peer 列表 + 在线状态 -->
+                        <el-tab-pane label="Peer 列表" name="peers">
+                            <div class="filter-bar">
+                                <el-button type="primary" @click="loadPeers" :icon="Refresh">刷新</el-button>
+                                <el-tag type="info">在线 {{ onlinePeersCount }} / 总数 {{ peersList.length }}</el-tag>
+                                <el-tag type="success" v-if="commHeartbeatRunning">心跳运行中（60s）</el-tag>
+                            </div>
+                            <div class="table-container">
+                                <el-table :data="peersList" v-loading="peersLoading" border stripe style="width: 100%">
+                                    <el-table-column prop="member_id" label="Member ID" width="180" show-overflow-tooltip></el-table-column>
+                                    <el-table-column prop="display_name" label="显示名" width="140"></el-table-column>
+                                    <el-table-column label="标签" min-width="180">
+                                        <template #default="{ row }">
+                                            <el-tag v-for="t in (row.tags || [])" :key="t" size="small" type="success" style="margin-right: 4px; margin-bottom: 4px">{{ t }}</el-tag>
+                                            <span v-if="!row.tags || row.tags.length === 0" style="color: #c0c4cc">—</span>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="在线状态" width="100">
+                                        <template #default="{ row }">
+                                            <el-tag :type="row.online ? 'success' : 'info'" size="small">{{ row.online ? '在线' : '离线' }}</el-tag>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column prop="last_heartbeat" label="最后心跳" width="160">
+                                        <template #default="{ row }">{{ row.last_heartbeat ? formatDate(row.last_heartbeat) : '—' }}</template>
+                                    </el-table-column>
+                                    <el-table-column label="操作" width="200" fixed="right">
+                                        <template #default="{ row }">
+                                            <el-button size="small" type="primary" @click="showAskFromPeer(row)">询问</el-button>
+                                            <el-button size="small" @click="showPeerConversations(row)">对话</el-button>
+                                        </template>
+                                    </el-table-column>
+                                </el-table>
+                            </div>
+                        </el-tab-pane>
+
+                        <!-- 对话（聊天式，合并历史与发送） -->
+                        <el-tab-pane label="对话" name="ask">
+                            <div class="chat-container">
+                                <div class="chat-header">
+                                    <el-select v-model="askForm.toPeer" filterable placeholder="选择对话对象" style="width: 320px" @change="loadChatHistory">
+                                        <el-option
+                                            v-for="p in peersList"
+                                            :key="p.member_id"
+                                            :label="`${p.display_name} (${p.member_id})${p.online ? ' [在线]' : ' [离线]'}`"
+                                            :value="p.member_id"
+                                        />
+                                    </el-select>
+                                    <span class="chat-status" v-if="askForm.toPeer">
+                                        {{ peerOnline(askForm.toPeer) ? '● 在线 — 实时投递' : '● 离线 — 影子联络' }}
+                                    </span>
+                                    <el-button text :icon="Refresh" @click="loadChatHistory" style="margin-left: auto">刷新</el-button>
+                                </div>
+                                <div class="chat-messages" ref="chatBoxRef">
+                                    <div v-if="chatMessages.length === 0" class="chat-empty">
+                                        {{ askForm.toPeer ? '暂无消息记录，发送第一条消息开始对话' : '请先选择对话对象' }}
+                                    </div>
+                                    <div v-for="msg in chatMessages" :key="msg.event_id"
+                                         :class="['chat-msg', msg.from_member === currentMember ? 'chat-msg-out' : 'chat-msg-in']">
+                                        <div class="chat-bubble">
+                                            <div class="chat-sender" v-if="msg.from_member !== currentMember">{{ msg.from_member }}</div>
+                                            <div class="chat-content">{{ chatMessageText(msg) }}</div>
+                                            <div class="chat-meta">
+                                                <span>{{ formatChatTime(msg.timestamp) }}</span>
+                                                <el-tag v-if="msg.degraded" size="small" type="warning" effect="plain">影子</el-tag>
+                                                <el-tag v-else-if="msg.realtime" size="small" type="success" effect="plain">实时</el-tag>
+                                                <el-tag v-if="msg.status === 'pending_delivery'" size="small" type="info" effect="plain">待投递</el-tag>
+                                                <el-button text size="small" @click="showThreadDialog(msg)" style="padding: 0 4px; height: auto; min-height: 0">线程</el-button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="chat-input">
+                                    <el-input
+                                        v-model="askForm.question"
+                                        type="textarea"
+                                        :rows="2"
+                                        :placeholder="askForm.toPeer ? '输入消息，Ctrl+Enter 发送' : '请先选择对话对象'"
+                                        :disabled="!askForm.toPeer"
+                                        @keydown.enter.ctrl="handleAskPeer"
+                                    ></el-input>
+                                    <el-button type="primary" @click="handleAskPeer" :loading="askLoading" :disabled="!askForm.toPeer">发送</el-button>
+                                </div>
+                            </div>
+                        </el-tab-pane>
+
+                        <!-- 影子对账状态 -->
+                        <el-tab-pane label="影子对账" name="shadow">
+                            <el-alert
+                                title="影子对账"
+                                type="info"
+                                description="列出所有 degraded=true 的影子联络事件。peer 上线后对比模拟回答与真实回答，确认 / 修订 / 转人工审核。"
+                                show-icon
+                                :closable="false"
+                                style="margin-bottom: 16px"
+                            />
+                            <div class="filter-bar">
+                                <el-select v-model="shadowFilter.status" placeholder="状态过滤" clearable style="width: 200px" @change="loadShadowLog">
+                                    <el-option label="pending_delivery 待投递" value="pending_delivery" />
+                                    <el-option label="delivered 已投递" value="delivered" />
+                                    <el-option label="confirmed 已确认" value="confirmed" />
+                                    <el-option label="revised 已修订" value="revised" />
+                                    <el-option label="needs_human_review 待人工" value="needs_human_review" />
+                                </el-select>
+                                <el-button type="primary" @click="loadShadowLog" :icon="Refresh">刷新</el-button>
+                            </div>
+                            <div class="table-container">
+                                <el-table :data="shadowList" v-loading="shadowLoading" border stripe style="width: 100%">
+                                    <el-table-column prop="event_id" label="事件 ID" width="180" show-overflow-tooltip></el-table-column>
+                                    <el-table-column prop="event_type" label="类型" width="150">
+                                        <template #default="{ row }">
+                                            <el-tag size="small" :type="eventTypeTag(row.event_type)">{{ row.event_type }}</el-tag>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="对方" width="120">
+                                        <template #default="{ row }">
+                                            {{ row.from_member === currentMember ? row.to_peer : row.from_member }}
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column prop="timestamp" label="时间" width="160">
+                                        <template #default="{ row }">{{ formatDate(row.timestamp) }}</template>
+                                    </el-table-column>
+                                    <el-table-column prop="status" label="状态" width="130">
+                                        <template #default="{ row }">
+                                            <el-tag size="small" :type="statusTagType(row.status)">{{ row.status }}</el-tag>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="操作" width="260" fixed="right">
+                                        <template #default="{ row }">
+                                            <el-button size="small" type="success" @click="handleReconcile(row, 'confirmed')">确认</el-button>
+                                            <el-button size="small" type="warning" @click="handleReconcile(row, 'revised')">修订</el-button>
+                                            <el-button size="small" type="danger" @click="handleReconcile(row, 'needs_human_review')">转人工</el-button>
+                                        </template>
+                                    </el-table-column>
+                                </el-table>
+                            </div>
+                        </el-tab-pane>
+                    </el-tabs>
+                </template>
+
+                <!-- 团队管理 -->
+                <template v-if="activeMenu === 'team'">
+                    <div style="margin-bottom: 16px">
+                        <el-button type="primary" @click="showCreateTeamDialog">创建顶层团队</el-button>
+                        <el-button @click="loadTeamTree">刷新</el-button>
+                    </div>
+                    <el-tree
+                        :data="teamTree"
+                        node-key="id"
+                        default-expand-all
+                        :expand-on-click-node="false"
+                        v-loading="teamLoading"
+                    >
+                        <template #default="{ data }">
+                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%">
+                                <div>
+                                    <span style="font-weight: 600">{{ data.name }}</span>
+                                    <el-tag size="small" type="info" style="margin-left: 8px">{{ data.member_count }} 人</el-tag>
+                                    <span style="color: #909399; font-size: 12px; margin-left: 8px">{{ data.path }}</span>
+                                    <span style="color: #909399; font-size: 12px; margin-left: 8px" v-if="data.description">{{ data.description }}</span>
+                                </div>
+                                <div>
+                                    <el-button size="small" @click.stop="showCreateSubTeamDialog(data)">创建子团队</el-button>
+                                    <el-button size="small" type="primary" @click.stop="showTeamMembers(data)">成员</el-button>
+                                    <el-button size="small" type="danger" @click.stop="handleDeleteTeam(data)">删除</el-button>
+                                </div>
+                            </div>
+                        </template>
+                    </el-tree>
+                    <el-empty v-if="!teamLoading && teamTree.length === 0" description="暂无团队，点击上方按钮创建" />
+                </template>
+
+                <!-- 成员管理 -->
+                <template v-if="activeMenu === 'members'">
+                    <div style="margin-bottom: 16px">
+                        <el-button type="primary" @click="showAddMemberDialog">添加成员</el-button>
+                        <el-button @click="loadMembers">刷新</el-button>
+                    </div>
+                    <el-table :data="memberList" v-loading="memberLoading" border>
+                        <el-table-column prop="member_id" label="成员 ID" width="180"></el-table-column>
+                        <el-table-column prop="display_name" label="显示名" width="130"></el-table-column>
+                        <el-table-column prop="role" label="角色" width="100">
+                            <template #default="{ row }">
+                                <el-tag :type="row.role === 'admin' ? 'danger' : 'info'">{{ row.role }}</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="标签" min-width="180">
+                            <template #default="{ row }">
+                                <el-tag v-for="t in (row.tags || [])" :key="t" size="small" type="success" style="margin-right: 4px; margin-bottom: 4px">{{ t }}</el-tag>
+                                <span v-if="!row.tags || row.tags.length === 0" style="color: #c0c4cc">—</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="status" label="状态" width="90">
+                            <template #default="{ row }">
+                                <el-tag :type="row.status === 'active' ? 'success' : 'warning'">{{ row.status }}</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="created_at" label="创建时间" width="160">
+                            <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
+                        </el-table-column>
+                        <el-table-column label="操作" width="280" fixed="right">
+                            <template #default="{ row }">
+                                <el-button size="small" @click="handleToggleMemberRole(row)">
+                                    {{ row.role === 'admin' ? '降为成员' : '升为管理员' }}
+                                </el-button>
+                                <el-button size="small" type="warning" @click="showEditTagsDialog(row)">编辑标签</el-button>
+                                <el-button size="small" type="danger" @click="handleDeleteMember(row.member_id)" :disabled="row.member_id === currentMember">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </template>
+            </div>
+        </div>
+    </template>
+
+    <!-- 资产详情对话框 -->
+    <el-dialog v-model="detailDialogVisible" title="资产详情" width="70%" top="5vh">
+        <div v-if="detailData" v-loading="detailLoading">
+            <el-descriptions :column="2" border>
+                <el-descriptions-item label="ID">{{ detailData.id }}</el-descriptions-item>
+                <el-descriptions-item label="类型">{{ detailData.type }}</el-descriptions-item>
+                <el-descriptions-item label="所有者">{{ detailData.owner }}</el-descriptions-item>
+                <el-descriptions-item label="共享范围">
+                    <el-tag size="small" :class="'scope-tag-' + detailData.scope">{{ scopeLabel(detailData.scope) }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="模块路径">{{ detailData.module_path || '—' }}</el-descriptions-item>
+                <el-descriptions-item label="分类">{{ detailData.category || '—' }}</el-descriptions-item>
+                <el-descriptions-item label="版本">{{ detailData.version }}</el-descriptions-item>
+                <el-descriptions-item label="状态">
+                    <el-tag size="small" :type="detailData.status === 'active' ? 'success' : 'info'">{{ detailData.status }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="Git 路径">{{ detailData.git_path }}</el-descriptions-item>
+                <el-descriptions-item label="Git Commit">{{ detailData.git_commit.substring(0, 12) }}</el-descriptions-item>
+                <el-descriptions-item label="标签" :span="2">
+                    <el-tag v-for="tag in detailData.tags" :key="tag" size="small" style="margin-right: 6px">{{ tag }}</el-tag>
+                    <span v-if="!detailData.tags || detailData.tags.length === 0">—</span>
+                </el-descriptions-item>
+                <el-descriptions-item label="创建时间">{{ formatDate(detailData.created_at) }}</el-descriptions-item>
+                <el-descriptions-item label="更新时间">{{ formatDate(detailData.updated_at) }}</el-descriptions-item>
+                <el-descriptions-item label="Embedding ID" :span="2">{{ detailData.embedding_id || '（未生成）' }}</el-descriptions-item>
+            </el-descriptions>
+            <div style="margin-top: 16px">
+                <div style="font-weight: 600; margin-bottom: 8px">内容快照：</div>
+                <div class="content-preview">{{ detailData.content }}</div>
+            </div>
+        </div>
+    </el-dialog>
+
+    <!-- 单个共享修改对话框 -->
+    <el-dialog v-model="scopeDialogVisible" title="修改共享范围" width="420px">
+        <div v-if="scopeDialogData">
+            <el-alert
+                :title="`资产：${scopeDialogData.id}`"
+                type="info"
+                :closable="false"
+                style="margin-bottom: 16px"
+            ></el-alert>
+            <el-form label-width="100px">
+                <el-form-item label="当前共享">
+                    <el-tag :class="'scope-tag-' + scopeDialogData.scope">{{ scopeLabel(scopeDialogData.scope) }}</el-tag>
+                </el-form-item>
+                <el-form-item label="新共享范围">
+                    <el-radio-group v-model="scopeDialogNewValue">
+                        <el-radio value="private">私有（仅自己）</el-radio>
+                        <el-radio value="team">团队共享</el-radio>
+                        <el-radio value="restricted">受限访问</el-radio>
+                        <el-radio value="public">完全公开</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+            </el-form>
+        </div>
+        <template #footer>
+            <el-button @click="scopeDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleUpdateScope" :loading="scopeUpdating">确认修改</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 批量共享修改对话框 -->
+    <el-dialog v-model="batchScopeDialogVisible" title="批量修改共享范围" width="480px">
+        <el-alert
+            :title="`将修改 ${shareMgmtSelection.length} 个资产的共享范围`"
+            type="warning"
+            :closable="false"
+            style="margin-bottom: 16px"
+        ></el-alert>
+        <el-form label-width="100px">
+            <el-form-item label="新共享范围">
+                <el-radio-group v-model="batchScopeNewValue">
+                    <el-radio value="private">私有（仅自己）</el-radio>
+                    <el-radio value="team">团队共享</el-radio>
+                    <el-radio value="restricted">受限访问</el-radio>
+                    <el-radio value="public">完全公开</el-radio>
+                </el-radio-group>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="batchScopeDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleBatchUpdateScope" :loading="batchScopeUpdating">确认批量修改</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 资产关联列表对话框 -->
+    <el-dialog
+        v-model="linksDialogVisible"
+        :title="`资产关联 — ${currentLinksAsset ? currentLinksAsset.id : ''}`"
+        width="80%"
+        top="5vh"
+    >
+        <div v-loading="linksLoading">
+            <div v-if="linksData">
+                <el-alert
+                    :title="`出向 ${linksData.outgoing.length} 条 / 入向 ${linksData.incoming.length} 条`"
+                    type="info"
+                    :closable="false"
+                    style="margin-bottom: 12px"
+                ></el-alert>
+                <el-button type="primary" size="small" @click="showAddLinkDialog" style="margin-bottom: 12px">+ 添加关联</el-button>
+                <el-row :gutter="16">
+                    <el-col :span="12">
+                        <el-card shadow="never">
+                            <template #header>出向（本资产 → 他资产）</template>
+                            <el-table :data="linksData.outgoing" border stripe size="small" max-height="360">
+                                <el-table-column prop="link_type" label="类型" width="120">
+                                    <template #default="{ row }">
+                                        <el-tag size="small" type="warning">{{ linkTypeLabel(row.link_type) }}</el-tag>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="peer_id" label="对端资产" width="200" show-overflow-tooltip></el-table-column>
+                                <el-table-column prop="peer_type" label="类型" width="80">
+                                    <template #default="{ row }">
+                                        <el-tag size="small" :type="typeTagType(row.peer_type)">{{ row.peer_type }}</el-tag>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="peer_owner" label="所有者" width="100"></el-table-column>
+                                <el-table-column prop="peer_module_path" label="模块路径" min-width="140" show-overflow-tooltip></el-table-column>
+                                <el-table-column label="操作" width="90" fixed="right">
+                                    <template #default="{ row }">
+                                        <el-button size="small" type="danger" link @click="handleDeleteLink(row.link_id)">删除</el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                            <div v-if="linksData.outgoing.length === 0" style="color: #c0c4cc; text-align: center; padding: 16px">无出向关联</div>
+                        </el-card>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-card shadow="never">
+                            <template #header>入向（他资产 → 本资产）</template>
+                            <el-table :data="linksData.incoming" border stripe size="small" max-height="360">
+                                <el-table-column prop="link_type" label="类型" width="120">
+                                    <template #default="{ row }">
+                                        <el-tag size="small" type="warning">{{ linkTypeLabel(row.link_type) }}</el-tag>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="peer_id" label="对端资产" width="200" show-overflow-tooltip></el-table-column>
+                                <el-table-column prop="peer_type" label="类型" width="80">
+                                    <template #default="{ row }">
+                                        <el-tag size="small" :type="typeTagType(row.peer_type)">{{ row.peer_type }}</el-tag>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="peer_owner" label="所有者" width="100"></el-table-column>
+                                <el-table-column prop="peer_module_path" label="模块路径" min-width="140" show-overflow-tooltip></el-table-column>
+                            </el-table>
+                            <div v-if="linksData.incoming.length === 0" style="color: #c0c4cc; text-align: center; padding: 16px">无入向关联</div>
+                        </el-card>
+                    </el-col>
+                </el-row>
+            </div>
+        </div>
+    </el-dialog>
+
+    <!-- 添加关联对话框 -->
+    <el-dialog v-model="linkDialogVisible" title="添加资产关联" width="480px">
+        <el-form :model="linkForm" label-width="100px">
+            <el-form-item label="目标资产 ID">
+                <el-input v-model="linkForm.dstAssetId" placeholder="关联到的资产 ID"></el-input>
+            </el-form-item>
+            <el-form-item label="关联类型">
+                <el-select v-model="linkForm.linkType" style="width: 100%">
+                    <el-option label="derived_from 派生自" value="derived_from"></el-option>
+                    <el-option label="supersedes 取代" value="supersedes"></el-option>
+                    <el-option label="related_to 关联" value="related_to"></el-option>
+                    <el-option label="module_parent 模块父级" value="module_parent"></el-option>
+                    <el-option label="triggers 触发" value="triggers"></el-option>
+                </el-select>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="linkDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleAddLink" :loading="linkLoading">添加</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- ACL 列表对话框 -->
+    <el-dialog
+        v-model="aclDialogVisible"
+        :title="`ACL 授权 — ${currentAclAsset ? currentAclAsset.id : ''}`"
+        width="70%"
+        top="5vh"
+    >
+        <div v-loading="aclLoading2">
+            <div v-if="aclData">
+                <el-alert
+                    :title="`当前授权 ${aclData.acls.length} 条`"
+                    type="info"
+                    :closable="false"
+                    style="margin-bottom: 12px"
+                ></el-alert>
+                <el-button type="primary" size="small" @click="showAddAclDialog" style="margin-bottom: 12px">+ 添加授权</el-button>
+                <el-table :data="aclData.acls" border stripe size="small">
+                    <el-table-column prop="grantee_type" label="对象类型" width="100">
+                        <template #default="{ row }">
+                            <el-tag size="small" :type="row.grantee_type === 'user' ? 'primary' : (row.grantee_type === 'agent' ? 'success' : 'warning')">{{ row.grantee_type }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="grantee_id" label="对象 ID" width="180" show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="permission" label="权限" width="100">
+                        <template #default="{ row }">
+                            <el-tag size="small" :type="row.permission === 'admin' ? 'danger' : (row.permission === 'execute' ? 'warning' : 'info')">{{ row.permission }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="granted_by" label="授权人" width="120" show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="granted_at" label="授权时间" min-width="160">
+                        <template #default="{ row }">{{ formatDate(row.granted_at) }}</template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="100" fixed="right">
+                        <template #default="{ row }">
+                            <el-button size="small" type="danger" link @click="handleDeleteAcl(row.acl_id)">撤销</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <div v-if="aclData.acls.length === 0" style="color: #c0c4cc; text-align: center; padding: 20px">暂无授权</div>
+            </div>
+        </div>
+    </el-dialog>
+
+    <!-- 添加 ACL 授权对话框 -->
+    <el-dialog v-model="aclFormDialogVisible" title="添加 ACL 授权" width="480px">
+        <el-form :model="aclForm" label-width="100px">
+            <el-form-item label="对象类型">
+                <el-radio-group v-model="aclForm.granteeType">
+                    <el-radio value="user">user 成员</el-radio>
+                    <el-radio value="agent">agent 智能体</el-radio>
+                    <el-radio value="role">role 角色</el-radio>
+                </el-radio-group>
+            </el-form-item>
+            <el-form-item label="对象 ID">
+                <el-input v-model="aclForm.granteeId" placeholder="member_id / agent_id / role_name"></el-input>
+            </el-form-item>
+            <el-form-item label="权限">
+                <el-radio-group v-model="aclForm.permission">
+                    <el-radio value="read">read 只读</el-radio>
+                    <el-radio value="execute">execute 执行</el-radio>
+                    <el-radio value="admin">admin 管理</el-radio>
+                </el-radio-group>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="aclFormDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleAddAcl" :loading="aclFormLoading">添加授权</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 添加成员对话框 -->
+    <el-dialog v-model="memberDialogVisible" title="添加成员" width="520px">
+        <el-form :model="memberForm" label-width="100px">
+            <el-form-item label="成员 ID">
+                <el-input v-model="memberForm.memberId" placeholder="如：alice"></el-input>
+            </el-form-item>
+            <el-form-item label="显示名">
+                <el-input v-model="memberForm.displayName" placeholder="可留空，默认使用成员 ID"></el-input>
+            </el-form-item>
+            <el-form-item label="角色">
+                <el-radio-group v-model="memberForm.role">
+                    <el-radio value="member">member 普通成员</el-radio>
+                    <el-radio value="admin">admin 管理员</el-radio>
+                </el-radio-group>
+            </el-form-item>
+            <el-form-item label="成员标签">
+                <el-select
+                    v-model="memberForm.tags"
+                    multiple
+                    filterable
+                    allow-create
+                    default-first-option
+                    placeholder="选择或输入标签（如：前端/后端）"
+                    style="width: 100%"
+                >
+                    <el-option v-for="t in tagSuggestions" :key="t" :label="t" :value="t" />
+                </el-select>
+                <div style="color: #909399; font-size: 12px; margin-top: 4px">至少选择一个标签，可输入自定义标签</div>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="memberDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleAddMember">添加</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 编辑成员标签对话框 -->
+    <el-dialog v-model="editTagsDialogVisible" title="编辑成员标签" width="520px">
+        <el-form :model="editTagsForm" label-width="100px">
+            <el-form-item label="成员 ID">
+                <el-input :model-value="editTagsForm.memberId" disabled></el-input>
+            </el-form-item>
+            <el-form-item label="成员标签">
+                <el-select
+                    v-model="editTagsForm.tags"
+                    multiple
+                    filterable
+                    allow-create
+                    default-first-option
+                    placeholder="选择或输入标签"
+                    style="width: 100%"
+                >
+                    <el-option v-for="t in tagSuggestions" :key="t" :label="t" :value="t" />
+                </el-select>
+                <div style="color: #909399; font-size: 12px; margin-top: 4px">可添加或删除标签，支持自定义</div>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="editTagsDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleSaveTags">保存</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 创建团队对话框 -->
+    <el-dialog v-model="teamDialogVisible" :title="teamDialogMode === 'create' ? '创建顶层团队' : '创建子团队'" width="480px">
+        <el-form :model="teamForm" label-width="80px">
+            <el-form-item label="团队名称">
+                <el-input v-model="teamForm.name" placeholder="如：前端组"></el-input>
+            </el-form-item>
+            <el-form-item label="描述">
+                <el-input v-model="teamForm.description" type="textarea" :rows="2" placeholder="可选"></el-input>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="teamDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleCreateTeam">创建</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 团队成员管理对话框 -->
+    <el-dialog v-model="teamMembersDialogVisible" :title="`团队成员 - ${currentTeam?.name || ''}`" width="720px">
+        <div style="margin-bottom: 12px">
+            <el-button type="primary" size="small" @click="showAddTeamMemberDialog">添加成员到团队</el-button>
+            <el-button size="small" @click="showTeamMembers(currentTeam)">刷新</el-button>
+        </div>
+        <el-table :data="teamMembersList" v-loading="teamMembersLoading" border size="small">
+            <el-table-column prop="member_id" label="成员 ID" width="180"></el-table-column>
+            <el-table-column prop="display_name" label="显示名" width="150"></el-table-column>
+            <el-table-column prop="role" label="团队角色" width="120">
+                <template #default="{ row }">
+                    <el-tag :type="row.role === 'admin' ? 'danger' : 'info'" size="small">{{ row.role }}</el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column prop="added_by" label="添加人" width="150"></el-table-column>
+            <el-table-column prop="added_at" label="添加时间" min-width="160">
+                <template #default="{ row }">{{ formatDate(row.added_at) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="100" fixed="right">
+                <template #default="{ row }">
+                    <el-button size="small" type="danger" @click="handleRemoveTeamMember(row.member_id)">移除</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <el-empty v-if="!teamMembersLoading && teamMembersList.length === 0" description="该团队暂无成员" />
+    </el-dialog>
+
+    <!-- 添加团队成员对话框 -->
+    <el-dialog v-model="addTeamMemberDialogVisible" title="添加成员到团队" width="480px">
+        <el-form :model="addTeamMemberForm" label-width="80px">
+            <el-form-item label="成员 ID">
+                <el-input v-model="addTeamMemberForm.memberId" placeholder="输入已注册的成员 ID"></el-input>
+            </el-form-item>
+            <el-form-item label="团队角色">
+                <el-radio-group v-model="addTeamMemberForm.role">
+                    <el-radio value="member">member 普通成员</el-radio>
+                    <el-radio value="admin">admin 团队管理员</el-radio>
+                </el-radio-group>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="addTeamMemberDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleAddTeamMember">添加</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 对话线程查看器 -->
+    <el-dialog
+        v-model="threadDialogVisible"
+        :title="`对话线程 — 根事件 ${threadData ? threadData.root_event_id : ''}`"
+        width="70%"
+        top="5vh"
+    >
+        <div v-loading="threadLoading">
+            <div v-if="threadData && threadData.items">
+                <el-alert
+                    :title="`线程共 ${threadData.items.length} 条事件`"
+                    type="info"
+                    :closable="false"
+                    style="margin-bottom: 16px"
+                />
+                <el-timeline>
+                    <el-timeline-item
+                        v-for="ev in threadData.items"
+                        :key="ev.event_id"
+                        :timestamp="formatDate(ev.timestamp)"
+                        :type="ev.event_type === 'ask' ? 'primary' : (ev.realtime ? 'success' : 'warning')"
+                        placement="top"
+                    >
+                        <el-card shadow="never">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px">
+                                <el-tag size="small" :type="eventTypeTag(ev.event_type)">{{ ev.event_type }}</el-tag>
+                                <el-tag size="small" type="info">{{ ev.from_member }} → {{ ev.to_peer }}</el-tag>
+                                <el-tag v-if="ev.degraded" size="small" type="warning">影子</el-tag>
+                                <el-tag v-if="ev.realtime" size="small" type="success">实时</el-tag>
+                                <el-tag size="small" :type="statusTagType(ev.status)">{{ ev.status }}</el-tag>
+                            </div>
+                            <div style="background: #f5f7fa; padding: 12px; border-radius: 4px; font-size: 13px; color: #606266; white-space: pre-wrap; font-family: Consolas, Monaco, monospace">
+                                <template v-if="ev.event_type === 'ask'">问题：{{ ev.payload?.question || '—' }}</template>
+                                <template v-else-if="ev.event_type === 'revised'">修订回答：{{ ev.payload?.revised_answer || '—' }}</template>
+                                <template v-else>回答：{{ ev.payload?.answer || '—' }}</template>
+                            </div>
+                            <div style="color: #909399; font-size: 12px; margin-top: 8px">
+                                event_id: {{ ev.event_id }}
+                                <span v-if="ev.in_reply_to"> | in_reply_to: {{ ev.in_reply_to }}</span>
+                                <span v-if="ev.based_on"> | based_on: {{ ev.based_on }}</span>
+                            </div>
+                        </el-card>
+                    </el-timeline-item>
+                </el-timeline>
+            </div>
+            <div v-else-if="!threadLoading" style="color: #c0c4cc; text-align: center; padding: 40px">暂无线程数据</div>
+        </div>
+    </el-dialog>
+</div>
+
+<script src="services/api.js"></script>
+<script src="services/utils.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

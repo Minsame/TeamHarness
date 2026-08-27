@@ -1,0 +1,47 @@
+# TeamHarness 单机模式每日 cron 备份配置（SubTask 3.3）
+#
+# 安装方法（Linux/macOS）：
+#   1. 复制此文件到 /etc/cron.d/teamharness-backup（系统级）
+#      或 crontab -e（用户级）后粘贴下方行（去掉 user 列）
+#   2. 修改路径与 USER 变量匹配实际部署
+#   3. cron 自动每天 03:00 执行备份
+#
+# cron 表达式说明（5 字段）：
+#   分钟 小时 日 月 周
+#   0    3    *  *  *   每天 03:00 执行
+#
+# 输出：
+#   备份文件：/var/lib/teamharness/backups/teamharness-backup-YYYYMMDD-HHMMSS.tar.gz
+#   保留最近 7 个，超出自动清理
+#   日志：/var/log/teamharness/backup.log
+#
+# 注意：本 cron 仅在 single-machine / all-in-one 模式下使用。
+#       docker-compose 模式应使用卷快照（不在本配置范围内）。
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+USER=teamharness
+
+# 数据目录与仓库路径（按实际部署修改）
+TEAMHARNESS_DATA_DIR=/var/lib/teamharness/data
+TEAMHARNESS_REPO_PATH=/var/lib/teamharness/repo
+TEAMHARNESS_BACKUP_DIR=/var/lib/teamharness/backups
+TEAMHARNESS_LOG_FILE=/var/log/teamharness/backup.log
+
+# 每天 03:00 执行备份
+0 3 * * * ${USER} \
+    TEAMHARNESS_DATA_DIR=${TEAMHARNESS_DATA_DIR} \
+    TEAMHARNESS_REPO_PATH=${TEAMHARNESS_REPO_PATH} \
+    TEAMHARNESS_BACKUP_DIR=${TEAMHARNESS_BACKUP_DIR} \
+    /usr/bin/env python3 -m server.deploy.backup \
+        --sqlite-path ${TEAMHARNESS_DATA_DIR}/teamharness.db \
+        --repo-path ${TEAMHARNESS_REPO_PATH} \
+        --output-dir ${TEAMHARNESS_BACKUP_DIR} \
+        --retention 7 \
+        >> ${TEAMHARNESS_LOG_FILE} 2>&1
+
+# 每周日 04:00 校验最近一个备份的完整性（解压自检）
+0 4 * * 0 ${USER} \
+    /usr/bin/env python3 -m server.deploy.backup verify-latest \
+        --backup-dir ${TEAMHARNESS_BACKUP_DIR} \
+        >> ${TEAMHARNESS_LOG_FILE} 2>&1

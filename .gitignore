@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.pw-cache/
+
+# Node
+node_modules/
+package-lock.json
+
+# 临时文件
+_tmp_*
+*.tmp
+*.log
+
+# 环境与密钥
+.env
+.env.*
+*.key
+*.pem
+
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE / 编辑器
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 操作系统
+.DS_Store
+Thumbs.db

@@ -1,0 +1,36 @@
+TeamHarness 前端 E2E 测试结果
+生成时间：2026-08-11T07:50:07.024Z
+总计：30  PASS：28  FAIL：2  SKIP：0
+
+[PASS] 1.1 空凭证提交提示警告
+[FAIL] 1.2 无效 API Key 拒绝登录 — 缺陷：无效 API Key 登录成功。根因：后端 /v1/auth/apikey/lookup 对无效 key 返回 200 {agent_id:null}，前端 handleLogin 未校验 agent_id 即放行
+[PASS] 1.3 颁发对话框打开/关闭
+[PASS] 1.4 有效凭证登录 alice 进入主界面
+[PASS] 1.5 刷新页面保持登录态
+[PASS] 2.1 我的规则库表格加载 — 行数=5
+[PASS] 2.2 类型筛选器（rule） — 行数=2
+[PASS] 2.3 共享范围筛选器（restricted） — 行数=1
+[PASS] 2.4 分类筛选器（backend/coding） — 行数=1
+[PASS] 2.5 模块路径筛选器（modules/governance） — 行数=1
+[PASS] 2.6 详情对话框打开/关闭
+[PASS] 2.7 单个共享修改对话框（提交+还原）
+[PASS] 2.8 共享库表格加载 — 行数=7
+[PASS] 2.9 共享库类型筛选器
+[PASS] 2.10 共享管理表格加载+批量按钮初始禁用 — 行数=5，禁用=true
+[PASS] 2.11 选择+批量修改对话框（取消）
+[PASS] 2.12 批量修改提交+还原（005 public→team→public）
+[PASS] 2.13 快速修改 scope 下拉（003 team→private→team）
+[PASS] 2.14 资产图谱 BFS 遍历（3 节点 2 边） — 节点=3 边=2
+[PASS] 2.15 图谱深度1遍历 — 节点=3 边=2
+[PASS] 2.16 图谱空根ID提示警告
+[FAIL] 2.17 关联列表对话框 UI 入口缺失（缺陷） — showLinksDialog 在 app.js 定义但 index.html 无 @click 触发，关联列表/添加关联/删除关联对话框通过 UI 不可达（死代码）。图谱页可见按钮：[遍历]
+[PASS] 2.18 ACL 受限资产列表 — 行数=1
+[PASS] 2.19 ACL 管理对话框打开
+[PASS] 2.20 ACL 添加授权+撤销（round-trip）
+[PASS] 2.21 ACL 添加授权空对象ID校验
+[PASS] 2.22 治理看板统计卡片+分布渲染
+[PASS] 2.23 按类型分布进度条 — 进度条数=4
+[PASS] 2.24 按模块分布 Top10
+[PASS] 3.1 退出登录返回登录页+清空凭证
+
+截图目录：d:\Code\TeamHarness\tests\frontend\screenshots

@@ -1,0 +1,47 @@
+﻿{
+    "acl_setup":  [
+                      {
+                          "permission":  "read",
+                          "asset":  "asset-alice-001",
+                          "grantee":  "bob"
+                      },
+                      {
+                          "permission":  "execute",
+                          "asset":  "asset-alice-001",
+                          "grantee":  "charlie"
+                      }
+                  ],
+    "cross_user_links":  [
+                             {
+                                 "dst":  "asset-bob-001",
+                                 "type":  "derived_from",
+                                 "src":  "asset-alice-001"
+                             },
+                             {
+                                 "dst":  "asset-charlie-001",
+                                 "type":  "related_to",
+                                 "src":  "asset-bob-001"
+                             },
+                             {
+                                 "dst":  "asset-alice-005",
+                                 "type":  "supersedes",
+                                 "src":  "asset-charlie-002"
+                             },
+                             {
+                                 "dst":  "asset-bob-004",
+                                 "type":  "related_to",
+                                 "src":  "asset-alice-005"
+                             }
+                         ],
+    "keys":  {
+                 "alice":  "th_b8df89f8075ccf5e58a34673292d2653",
+                 "charlie":  "th_91e7b4462a614481ad66e4a5891922a9",
+                 "bob":  "th_3209616b587f35283ae03d6222d2a556",
+                 "eve":  "th_a7ac0374ed0792e6c186a72f9490ca31",
+                 "dave":  "th_457e67873d4f92a0bb687915e4f00ec7"
+             },
+    "restricted_assets":  [
+                              "asset-alice-001",
+                              "asset-charlie-002"
+                          ]
+}

@@ -1,0 +1,81 @@
+"""async_comm 常量定义。
+
+对应 Task 11：异步交流模块的事件类型、消息状态与默认配置。
+"""
+
+# 事件类型
+EVENT_ASK = "ask"
+EVENT_REALTIME_ANSWER = "realtime_answer"
+EVENT_SIMULATED_ANSWER = "simulated_answer"
+EVENT_CONFIRMED = "confirmed"
+EVENT_REVISED = "revised"
+EVENT_NEEDS_HUMAN_REVIEW = "needs_human_review"
+
+# 消息类型（msg_type）
+MSG_TYPE_ASK = "ask"
+MSG_TYPE_ANSWER = "answer"
+MSG_TYPE_SHARE_ASSET = "share_asset"
+MSG_TYPE_SYNC = "sync"
+MSG_TYPE_HEARTBEAT = "heartbeat"
+# Task 25：标签同步与轻量探测（按 tag 路由）
+MSG_TYPE_TAGS_SYNC = "tags_sync"  # admin 广播 peer_id → tags 映射
+MSG_TYPE_PROBE = "probe"  # 多候选混合策略中的轻量探测消息
+
+# 消息状态
+STATUS_PENDING_DELIVERY = "pending_delivery"
+STATUS_DELIVERED = "delivered"
+STATUS_CONFIRMED = "confirmed"
+STATUS_REVISED = "revised"
+STATUS_NEEDS_HUMAN_REVIEW = "needs_human_review"
+
+# 默认配置
+DEFAULT_SNAPSHOT_TTL_DAYS = 30
+DEFAULT_CONFLICT_THRESHOLD = 0.3
+DEFAULT_AUTO_CONFIRM_THRESHOLD = 0.8
+DEFAULT_SNAPSHOT_POLICY = "on_demand"
+
+# Task 25：多候选混合策略默认参数
+DEFAULT_PROBE_TIMEOUT_SECONDS = 5  # 轻量探测等待响应的超时（秒）
+DEFAULT_TAG_FALLBACK_SHADOW = True  # 无候选响应时是否降级到影子联络
+
+# Task 27：对话状态标记
+CONV_STATE_ACTIVE = "active"
+CONV_STATE_PAUSED = "paused"
+CONV_STATE_TIMEOUT_DISCONNECT = "timeout_disconnect"
+CONV_STATE_RESUMED = "resumed"
+
+# Task 27：实时会话超时默认值（秒）
+DEFAULT_REALTIME_SESSION_TIMEOUT = 600
+
+
+__all__ = [
+    "CONV_STATE_ACTIVE",
+    "CONV_STATE_PAUSED",
+    "CONV_STATE_RESUMED",
+    "CONV_STATE_TIMEOUT_DISCONNECT",
+    "DEFAULT_AUTO_CONFIRM_THRESHOLD",
+    "DEFAULT_CONFLICT_THRESHOLD",
+    "DEFAULT_PROBE_TIMEOUT_SECONDS",
+    "DEFAULT_REALTIME_SESSION_TIMEOUT",
+    "DEFAULT_SNAPSHOT_POLICY",
+    "DEFAULT_SNAPSHOT_TTL_DAYS",
+    "DEFAULT_TAG_FALLBACK_SHADOW",
+    "EVENT_ASK",
+    "EVENT_CONFIRMED",
+    "EVENT_NEEDS_HUMAN_REVIEW",
+    "EVENT_REALTIME_ANSWER",
+    "EVENT_REVISED",
+    "EVENT_SIMULATED_ANSWER",
+    "MSG_TYPE_ANSWER",
+    "MSG_TYPE_ASK",
+    "MSG_TYPE_HEARTBEAT",
+    "MSG_TYPE_PROBE",
+    "MSG_TYPE_SHARE_ASSET",
+    "MSG_TYPE_SYNC",
+    "MSG_TYPE_TAGS_SYNC",
+    "STATUS_CONFIRMED",
+    "STATUS_DELIVERED",
+    "STATUS_NEEDS_HUMAN_REVIEW",
+    "STATUS_PENDING_DELIVERY",
+    "STATUS_REVISED",
+]

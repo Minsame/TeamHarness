@@ -1,0 +1,27 @@
+TeamHarness 多用户并发测试结果
+生成时间：2026-08-12T02:58:22.133Z
+测试地址：http://localhost:8080/
+总计：20  PASS：17  FAIL：3  SKIP：0
+
+[PASS] 1.1 private 资产隔离（alice-002） — alice=200(期望200), bob=404(期望404), charlie=404(期望404), dave=404(期望404)
+[PASS] 1.2 restricted + ACL（alice-001） — alice=200(期望200,owner), bob=200(期望200,ACL read), charlie=200(期望200,ACL execute), dave=404(期望404,无 ACL), eve=404(期望404,无 ACL)
+[PASS] 1.3 team/public 共享（3 资产 × 5 用户全 200） — alice->asset-alice-003=200, bob->asset-alice-003=200, charlie->asset-alice-003=200, dave->asset-alice-003=200, eve->asset-alice-003=200, alice->asset-alice-005=200, bob->asset-alice-005=200, charlie->asset-alice-005=200, dave->asset-alice-005=200, eve->asset-alice-005=200, alice->asset-bob-004=200, bob->asset-bob-004=200, charlie->asset-bob-004=200, dave->asset-bob-004=200, eve->asset-bob-004=200
+[PASS] 1.4 owner 参数篡改防护 — alice?owner=bob=403(期望403), bob?owner=alice=403(期望403), alice?owner=alice=200(期望200), alice(no owner)=200(期望200)
+[PASS] 1.5 member stats 篡改防护 — alice->/members/bob/stats=403(期望403), bob->/members/alice/stats=403(期望403), alice->/members/alice/stats=200(期望200)
+[FAIL] 1.6.1 alice 我的规则库（5 资产，含 restricted） — 前端未挂载（pageerror 阻塞 Vue/Element Plus）：Unexpected identifier 'checkLogin'
+[FAIL] 1.6.2 bob 共享库（见 alice team/public，不见 private/restricted） — 前端未挂载（pageerror 阻塞 Vue/Element Plus）：Unexpected identifier 'checkLogin'
+[FAIL] 1.6.3 dave 我的规则库（空状态） — 前端未挂载（pageerror 阻塞 Vue/Element Plus）：Unexpected identifier 'checkLogin'
+[PASS] 2.1 并发修改各自 scope — alice-003=public, bob-001=public
+[PASS] 2.2 并发创建关联到 charlie-001 — alice-003→=200, bob-003→=200
+[PASS] 2.3 并发查看 asset-alice-005 — 5 用户全 200，内容一致
+[PASS] 2.4 scope 实时影响 — team→private: bob 200→404; private→team: bob→200
+[PASS] 2.5 ACL 撤销实时影响 — 撤销: bob 200→404; 重授: bob→200
+[PASS] 3.1 关联创建→对端可见 — bob incoming 含 alice-003 --related_to--> bob-003
+[PASS] 3.2 图谱跨用户 BFS depth=3 — 节点=[asset-alice-001,asset-bob-001,asset-charlie-001], 边类型=[derived_from,related_to]
+[PASS] 3.3 ACL 添加→对端可见 — dave 404→授权→200→撤销→404
+[PASS] 3.4 关联删除→对端消失 — 删除前 bob incoming 有；删除后无；恢复后有
+[PASS] 4.1 共享库 total 一致性 — alice=10(期望10), bob=10(期望10), charlie=11(期望11), dave=8(期望8), eve=8(期望8)
+[PASS] 4.2 图谱对称性 — alice→bob-001 edge=true, bob→charlie-001 edge=true, aliceHasBob=true, bobHasAlice=true
+[PASS] 4.3 分页一致性 — page1=[asset-bob-003,asset-bob-004], page2=[asset-charlie-001,asset-charlie-003], total=10
+
+截图目录：d:\Code\TeamHarness\tests\multi_user\screenshots

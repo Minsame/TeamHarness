@@ -1,0 +1,43 @@
+# TeamHarness Shadow-Comm Plugin for DeepSeek Harness (DSH)
+#
+# 用途：让 DSH 通过 MCP 协议调用 TeamHarness 的 5 个工具
+#   - ask_peer：向其他成员的 AI 提问（peer_id 或 tag 路由，离线自动影子模拟）
+#   - list_peers：列出已知 peer
+#   - share_asset：资产定向共享
+#   - search_team_assets：搜索团队共享资产库
+#   - resume_conversation：恢复暂停的对话
+#
+# 使用（DSH v0.1+）：
+#   1. 安装 TeamHarness 服务端（docker compose -f deploy/docker-compose.yaml up -d）
+#   2. 在 DSH 中加载此 overlay：
+#      dsh web --patch /path/to/TeamHarness/deploy/dsh-teamharness.cordis.yml
+#   3. 在 DSH 配置中设置环境变量（或在此文件 env 字段填入）：
+#      TEAMHARNESS_SERVER_URL=http://localhost:8080
+#      TEAMHARNESS_API_KEY=th_xxx  （从服务端 /v1/auth/apikey 颁发）
+#      TEAMHARNESS_REPO_ROOT=$PWD/.teamharness
+#
+# DSH 会发现 5 个 mcp__teamharness__<tool> 工具，模型可直接调用。
+#
+# 参考：https://github.com/deepseek-ai/deepseek-harness/blob/master/examples/mcp-memory/README.md
+
+- insert:
+    - id: teamharness-shadow-comm
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: teamharness
+        transport: stdio
+        command: python
+        args:
+          - -m
+          - server.mcp_server
+        env:
+          # 服务端地址（DSH 加载时从 ambient env 注入，或在此显式填写）
+          TEAMHARNESS_SERVER_URL: ${TEAMHARNESS_SERVER_URL}
+          # 当前成员 API Key（从服务端 /v1/auth/apikey 颁发）
+          TEAMHARNESS_API_KEY: ${TEAMHARNESS_API_KEY}
+          # 本地工作目录（存储 mailbox / conversation_log / peer_snapshot）
+          TEAMHARNESS_REPO_ROOT: ${TEAMHARNESS_REPO_ROOT}
+          # 成员 ID（可选，默认从 API Key 反查）
+          TEAMHARNESS_MEMBER_ID: ${TEAMHARNESS_MEMBER_ID}
+          # 通信拓扑：central（默认，通过服务端）/ p2p（WebSocket 直连）/ hybrid（P2P 优先 + 服务端降级）
+          TEAMHARNESS_TOPOLOGY: central

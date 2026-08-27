@@ -1,0 +1,21 @@
+TeamHarness 前端状态异常测试结果
+生成时间：2026-08-11T09:47:36.064Z
+总计：15  PASS：10  FAIL：5  SKIP：0
+
+[FAIL] 1. localStorage 篡改 memberId 为 bob — 安全问题：前端显示"成员：bob"，且加载到 bob 的资产（http://localhost:8080/v1/assets?owner=alice&limit=20&offset=0, http://localhost:8080/v1/assets?owner=bob&limit=20&offset=0）。根因：checkLogin(app.js:23) 不校验 memberId 与 apiKey 对应关系；loadMyAssets(app.js:119) 直接用 localStorage 的 memberId 作 owner 参数，后端 require_member(assets/api.py:75) 只校验 key 有效性，不校验 owner 与 key 的对应关系。alice 用自己的 key 可查到 bob 的 team/public 资产
+[FAIL] 2. localStorage 篡改 apiKey 为 th_invalid — 缺陷：checkLogin(app.js:23) 只检查 key 非空不校验有效性，进入主界面后 API 返回 401，前端 request()(api.js:7) 无 401 拦截器不自动退出。用户卡在主界面看到错误消息："加载失败：无效或已失效的 API Key"。应增加：checkLogin 调用 lookupApiKey 校验，或 request() 拦截 401 自动 logout
+[PASS] 3. localStorage 篡改 apiKey 为空字符串 — checkLogin 中空字符串为 falsy，正确返回登录页
+[PASS] 4. localStorage 篡改：清空 localStorage — checkLogin 检测到无 key/member，正确返回登录页
+[PASS] 5. localStorage 篡改：memberId 为 <script> — Vue 模板默认转义，XSS 未执行。memberTag 显示为纯文本："成员：<script>alert(1)</script>"
+[FAIL] 6. Token 过期模拟（轮换 key） — 缺陷：旧 key 失效后 API 返回 401，但前端无 401 拦截器，用户卡在主界面。错误消息："加载失败：无效或已失效的 API Key"。应增加 401 拦截：自动清除 localStorage 并跳转登录页，提示"登录已过期，请重新登录"
+[PASS] 7. 网络中断模拟 — 不崩溃，有错误提示："加载失败：Failed to fetch"，loading 已恢复
+[PASS] 8. 后端 503 模拟 — 不崩溃，有错误提示："加载失败：Service Unavailable"，loading 已恢复
+[PASS] 9. 后端 500 模拟 — 不崩溃，有错误提示："加载失败：Internal Server Error"，loading 已恢复
+[PASS] 10. 后端返回非法 JSON — 不崩溃，有错误提示："加载失败：Unexpected token 'o', "not json" is not valid JSON"，loading 已恢复
+[PASS] 11. 后端返回空响应 — 不崩溃，有错误提示："加载失败：Failed to execute 'json' on 'Response': Unexpected end of JSON input"，loading 已恢复
+[FAIL] 12. 后端超时模拟 — 缺陷：fetch(api.js:14) 无超时设置，loading 卡住（30s 内未恢复）。前端无取消按钮，用户无法中止请求。应增加：fetch 超时（AbortController + setTimeout）或 loading 上的取消按钮
+[PASS] 13. 多标签页状态同步（localStorage 隔离） — B 标签未因 A 登录而自动登录；A 退出后 B 状态不变（localStorage 隔离正确）
+[PASS] 14. 页面刷新后状态恢复 — 仍登录，图谱输入丢失（"asset-alice-001" → "__NOT_VISIBLE__"），菜单回到"我的规则库"
+[FAIL] 15. 浏览器前进后退 — 无 history 集成：goBack 离开应用（url: http://localhost:8080/ → about:blank）。handleMenuSelect(app.js:95) 只改 activeMenu，未调用 history.pushState。应在菜单切换时 pushState，使后退能回到上一菜单
+
+截图目录：D:\Code\TeamHarness\tests\module_frontend\screenshots\abnormal_state

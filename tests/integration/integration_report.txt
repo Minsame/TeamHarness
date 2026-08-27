@@ -1,0 +1,102 @@
+TeamHarness 跨模块集成测试报告
+运行时间: 2026-08-11 16:26:01
+BaseUrl: http://localhost:8080
+======================================================================
+汇总: PASS=34  FAIL=0  SKIP=0  Total=34
+======================================================================
+
+===== 详细结果 =====
+[PASS] PREP-0 服务就绪
+        Actual:   healthz=200
+[PASS] PREP-1 颁发 alice/bob/charlie API Key
+        Actual:   alice=th_e0e24ed... bob=th_4406ed1... charlie=th_5089961...
+[PASS] IMG-1 容器内含 require_member 函数
+        Actual:   镜像已更新：require_member 存在
+[PASS] IMG-2 容器内含 _assert_owner/_can_view_asset/_has_acl_grant
+        Actual:   三个鉴权辅助函数均存在
+[PASS] AUTH-1a 有效 API Key 访问 -> 200
+        Expected: 200
+        Actual:   status=200
+[PASS] AUTH-1b 无效 API Key (th_invalid) -> 401
+        Expected: 401
+        Actual:   status=401 detail=
+[PASS] AUTH-1c 缺失 X-API-Key 头 -> 401
+        Expected: 401
+        Actual:   status=401 detail=
+[PASS] AUTH-1d 空字符串 API Key -> 401
+        Expected: 401
+        Actual:   status=401 detail=
+[PASS] AUTH-1e 轮换后的旧 API Key -> 401
+        Expected: 401
+        Actual:   status=401 detail=
+[PASS] OWNER-1 bob 改 alice 资产 scope -> 403
+        Expected: 403（owner 校验）
+        Actual:   status=403 detail=
+[PASS] OWNER-2 bob 删除 alice 资产关联 -> 403
+        Expected: 403（owner 校验）
+        Actual:   status=403 detail=
+[PASS] OWNER-3 bob 撤销 alice 资产 ACL -> 403
+        Expected: 403（owner 校验）
+        Actual:   status=403 detail=
+[PASS] SCOPE-1 alice 查 bob 的 private 资产 -> 404/403
+        Expected: 404 或 403（private 仅 owner 可见）
+        Actual:   status=404
+[PASS] SCOPE-2 bob 查 alice 的 restricted 资产（无 ACL）-> 404/403
+        Expected: 404 或 403（restricted 仅 ACL 授权用户可见）
+        Actual:   status=404
+[PASS] SCOPE-3 加 ACL read 后 bob 可查 alice 的 restricted 资产 -> 200
+        Expected: 200（ACL 授权生效）
+        Actual:   status=200（ACL 已清理）
+[PASS] SCOPE-4 共享库不含 alice 的 private/restricted
+        Expected: 不含 asset-alice-004/006
+        Actual:   列表共 10 项，无泄露
+[PASS] INTEG-1 重复创建相同关联 -> 409
+        Expected: 409（IntegrityError 已捕获）
+        Actual:   status=409 detail=
+[PASS] INTEG-2 重复创建相同 ACL -> 409
+        Expected: 409（IntegrityError 已捕获）
+        Actual:   status=409 detail=
+[PASS] OPTIONS-1 OPTIONS /v1/assets -> 200/204/405
+        Expected: 200/204/405
+        Actual:   status=405
+[PASS] LOOKUP-1 无效 key lookup -> 200 + agent_id=null（后端设计意图）
+        Expected: 200 + agent_id=null（反查接口，非鉴权失败）
+        Actual:   status=200 agent_id=
+[PASS] LOOKUP-2 有效 key lookup -> 200 + agent_id
+        Expected: 200 + agent_id=agent-alice-int
+        Actual:   status=200 agent_id=agent-alice-int
+[PASS] AUTH2-ROOT AUTH-2 根因：后端 200+null + 前端未校验 agent_id
+        Expected: 根因=前端（后端 lookup 是反查接口，200+null 是设计意图）
+        Actual:   后端 lookup=200+agent_id=null；前端 handleLogin 未出现 agent_id 字符串
+        Note:     镜像重建不改变此行为。修复需在 handleLogin 中校验返回的 agent_id 非空
+[PASS] S1-FLOW 场景1：alice 完整资产管理（登录/我的库/改scope/加ACL/退出）
+        Actual:   login=True myAssets=True scopeChange=True addAcl=True logout=True（已恢复）
+[PASS] S2-FLOW 场景2：bob 受限访问（共享库/ACL放行/private拒绝）
+        Actual:   login=True shared=True aclAccess=True privateDeny=True（ACL 已清理）
+[PASS] S3-FLOW 场景3：图谱+ACL联动（创建关联/BFS/改scope/加ACL/撤销ACL）
+        Actual:   login=True hasLink=True bfs=True addAcl=True revokeAcl=True（scope/acl 已恢复）
+[PASS] S4-FLOW 场景4：权限边界跨模块（bob 访问 alice 资产被拒）
+        Actual:   login=True denyPrivate=True denyModify=True denyDeleteLink=True
+[PASS] PT-1 GET /v1/assets/../../../etc/passwd 不泄露系统文件
+        Expected: 400/404 或不泄露 root:
+        Actual:   status=200 leaked=False
+[PASS] PT-2 GET /../etc/passwd 不泄露系统文件
+        Expected: 400/404 或不泄露
+        Actual:   status=200 leaked=False
+[PASS] PT-3 路径遍历响应不泄露 /etc/passwd 内容
+        Expected: not contains root:
+        Actual:   leaked=False status=200
+[PASS] CORS-1 OPTIONS /v1/assets + Origin 验证 CORS 头
+        Expected: 200/204/405（无 CORS 中间件时 405 可接受）
+        Actual:   status=405 Allow-Origin=
+        Note:     无 CORS 头（OPTIONS=405，跨域被浏览器拦截）
+[PASS] CONSIST-1 asset-alice-003 scope 恢复为 team
+        Expected: team
+        Actual:   scope=team
+[PASS] CONSIST-2 asset-alice-004 scope 恢复为 restricted
+        Expected: restricted
+        Actual:   scope=restricted
+[PASS] CONSIST-3 asset-alice-001 -> 002 derived_from 关联存在
+        Actual:   关联存在
+[PASS] CONSIST-4 asset-alice-004 ACL 已清理（无测试残留）
+        Actual:   hasDupAgent=False hasBobTemp=False

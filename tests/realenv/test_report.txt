@@ -1,0 +1,96 @@
+﻿
+=== 1. 多用户权限边界 ===
+  API Keys: alice=th_23a7cf3... bob=th_8db399b... charlie=th_e76ad21...
+  [FAIL] P1 : bob 查询 alice 的 private 资产应被拒绝
+         expected: 404 或 403（非 owner 不应能访问 private 资产）
+         actual:   status=200，bob 成功获取 alice 的 private 资产详情（owner=alice, scope=private）
+         note:     API 无鉴权中间件，get_asset 不校验 owner/scope，任何人可通过 ID 查询任意资产
+  [PASS] P2 : bob 查询共享库应看到 alice 的 team 资产
+  [FAIL] P3 : alice 的 restricted 资产不应出现在 bob 的共享库
+         expected: asset-alice-004 不应出现在未授权用户的共享库列表
+         actual:   asset-alice-004 出现在共享库列表中（共 13 项）
+         note:     list_assets 不按 scope 过滤，restricted 资产对未授权用户可见
+  [PASS] P4 : 加 ACL read 后 bob 可查询 alice 的 restricted 资产
+         note: 但此 PASS 无法证明 ACL 真正生效——因 API 无鉴权，bob 加 ACL 前即可访问任意资产
+  [FAIL] P5 : bob 修改 alice 资产 scope 应被拒绝
+         expected: 403 或 401（仅 owner 可修改 scope）
+         actual:   status=200，bob 成功修改了 alice 的资产 scope（已恢复为 team）
+         note:     update_asset_scope 不校验请求者是否为 owner，任何人都可修改任意资产 scope
+  [FAIL] P6 : bob 删除 alice 资产关联应被拒绝
+         expected: 403 或 401（仅 owner 可删除关联）
+         actual:   status=200，bob 成功删除了 alice 的资产关联（已重建）
+         note:     delete_asset_link 不校验请求者是否为 owner，仅校验关联是否属于该资产
+  [FAIL] P7 : bob 撤销 alice 资产 ACL 应被拒绝
+         expected: 403 或 401（仅 owner 可撤销 ACL）
+         actual:   status=200，bob 成功撤销了 alice 资产的 ACL（已重建）
+         note:     delete_asset_acl 不校验请求者是否为 owner，仅校验 ACL 是否属于该资产
+  [PASS] P8 : charlie 操作自己的资产正常
+
+=== Summary (1. 多用户权限边界) ===
+Total: 8 | PASS: 3 | FAIL: 5 | SKIP: 0
+
+=== 2. 并发测试 ===
+  [run] 并行 5 个创建关联请求...
+  [result] status codes: 200, 500, 500, 500, 500
+  [result] success=1 fail=4
+  [PASS] C1 : 并行 5 个创建相同关联，仅 1 个成功
+         note: 失败请求返回码：500
+  [setup] asset-alice-003 原始 scope=team
+  [run] 并行 3 个修改 scope 请求（private/public/restricted）...
+  [result] status codes: 200, 200, 200
+  [result] 最终 scope=restricted
+  [cleanup] 已恢复 scope 为 team
+  [PASS] C2 : 并行 3 个修改 scope，最后生效无损坏
+  [run] 并行 5 个创建相同 ACL 请求...
+  [result] status codes: 200, 500, 500, 500, 500
+  [result] success=1 fail=4
+  [PASS] C3 : 并行 5 个创建相同 ACL，仅 1 个成功
+
+=== Summary (2. 并发测试) ===
+Total: 3 | PASS: 3 | FAIL: 0 | SKIP: 0
+
+=== 3. 错误处理 ===
+  [FAIL] E1 : 无效 API Key 应返回 401
+         expected: 401
+         actual:   status=200（无效 key 成功访问资产）
+         note:     /v1/assets/* 端点无鉴权中间件，不校验 X-API-Key
+  [FAIL] E2 : 缺失 X-API-Key 应返回 401
+         expected: 401
+         actual:   status=200（无 key 也能访问）
+         note:     端点无鉴权依赖，不要求 X-API-Key 头
+  [FAIL] E3 : 空字符串 API Key 应返回 401
+         expected: 401
+         actual:   status=200（空 key 也能访问）
+         note:     空字符串不被拒绝
+  [PASS] E4 : 超长 API Key 不应导致服务崩溃
+         note: 返回 400（HTTP 层 header 长度限制，非鉴权拒绝，但未崩溃——可接受）
+  [PASS] E5 : 创建关联缺失 dst_asset_id 应被拒绝
+  [PASS] E6 : 创建关联无效 link_type 应返回 400
+  [PASS] E7 : 创建 ACL 无效 grantee_type 应返回 400
+  [PASS] E8 : 创建 ACL 无效 permission 应返回 400
+  [PASS] E9 : BFS depth=0 应返回 422（ge=1）
+  [PASS] E10 : BFS depth=4 应返回 422（le=3）
+  [PASS] E11 : 不存在的资产 ID 应返回 404
+  [PASS] E12 : SQL 注入不应导致崩溃或数据损坏
+         note: SQLAlchemy 参数化查询防止了注入
+  [PASS] E13 : XSS 注入应被转义或拒绝
+         note: JSON API 天然不执行 HTML，且 SQLAlchemy 参数化查询阻止注入
+
+=== Summary (3. 错误处理) ===
+Total: 13 | PASS: 10 | FAIL: 3 | SKIP: 0
+
+=== 4. 数据一致性 ===
+  [PASS] D1 : 串行重复创建相同关联，第二次应失败
+         note: 第二次失败码 500（IntegrityError 应为 409，实际 500）
+  [PASS] D2 : 删除关联后重建成功
+  [PASS] D3 : AssetLink 和 AssetAcl 外键 ondelete=CASCADE
+         note: API 无删除资产端点，仅验证模型定义。实际级联行为依赖 DB 层（SQLite 默认不启用 PRAGMA foreign_keys=ON）
+  [PASS] D4 : 自环关联应返回 400
+  [PASS] D5 : 关联到不存在的 dst 资产应返回 404
+  [PASS] D6 : offset 超出总数返回空 list，total 正确
+  [PASS] D7 : 大 limit 不导致崩溃（500 正常，10000 拒绝）
+         note: API Query(le=500) 限制最大 limit=500，limit=10000 返回 422（合理防护，未崩溃）
+
+=== Summary (4. 数据一致性) ===
+Total: 7 | PASS: 7 | FAIL: 0 | SKIP: 0
+

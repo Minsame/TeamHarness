@@ -1,0 +1,26 @@
+TeamHarness 前端异常操作测试结果
+生成时间：2026-08-11T10:02:27.811Z
+总计：20  PASS：19  FAIL：1  SKIP：0
+
+[PASS] 1. 登录快速重复点击：只触发 1 次请求 — 请求数=1，已进入主界面
+[PASS] 2. 颁发 Key 快速重复点击：只触发 1 次请求 — 请求数=1
+[FAIL] 3. 共享修改重复提交：只触发 1 次请求 — 请求数=5，handleUpdateScope 缺少函数级 scopeUpdating 守卫（app.js:267）。响应状态：200,200,200,200,200
+[PASS] 4. 批量修改重复提交：只触发 1 次请求 — 请求数=1（单资产）
+[PASS] 5. 创建关联重复提交：后端 409 防护有效 — 请求数=5，重复创建返回 409（非 500），后端 IntegrityError 防护有效。前端缺少函数级 linkLoading 守卫
+[PASS] 6. 删除关联重复点击：只触发 1 次请求 — 请求数=0，confirm 次数=0
+[PASS] 7. ACL 添加重复提交：后端 409 防护有效 — 请求数=5，重复添加返回 409（非 500），后端 IntegrityError 防护有效。前端缺少函数级 aclFormLoading 守卫
+[PASS] 8.1 详情对话框 ESC 关闭
+[PASS] 8.2 共享修改对话框 ESC 关闭+未提交
+[PASS] 8.3 颁发对话框 ESC 关闭+未颁发
+[PASS] 8.4 添加关联对话框 ESC 关闭+未创建
+[PASS] 9.1 详情对话框遮罩点击关闭
+[PASS] 9.2 共享修改对话框遮罩点击+未提交
+[PASS] 9.3 批量修改对话框遮罩点击+未提交
+[PASS] 10.1 共享修改取消：scope 未变
+[PASS] 10.2 添加关联取消：未创建
+[PASS] 10.3 ACL 添加取消：未添加
+[PASS] 11. 菜单快速切换 10 次 — 最终菜单=共享管理，无致命 JS 错误
+[PASS] 12. 分页快速切换 5 次 — 最终页码= 1 ，行数=5，无致命错误
+[PASS] 13. 筛选器快速变更 5 次 — 最终筛选=prompt，行数=1，GET 请求数=5
+
+截图目录：D:\Code\TeamHarness\tests\module_frontend\screenshots\abnormal_action

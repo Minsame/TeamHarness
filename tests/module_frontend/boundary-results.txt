@@ -1,0 +1,26 @@
+TeamHarness 前端边界操作测试结果
+生成时间：2026-08-11T10:01:32.762Z
+总计：20  PASS：19  FAIL：0  SKIP：1
+
+[PASS] 1. 筛选无结果（分类）显示空状态+不崩溃+可恢复 — 筛选后 rows=0, 空状态=true, 清除后 rows=5, total="Total 020/page 1"
+[PASS] 2. 模块路径筛选无结果 — rows=0, 空状态=true
+[PASS] 3. 共享库 owner 筛选无结果 — rows=0, 空状态=true
+[PASS] 4. 资产图谱孤立节点（asset-alice-003） — 节点=1 边=0
+[PASS] 5. 资产图谱不存在的 ID — 错误提示="加载图谱失败：资产不存在：nonexistent-asset-id-12345", graphData 保持 null
+[PASS] 6a. 前端 depth 选择器限制 1-3 — 选项=[深度 1（直接关联）, 深度 2, 深度 3]
+[PASS] 6b. 后端 BFS depth 边界（0/1/2/3/4） — depth=0 status=422 expect=422 ok=true | depth=1 status=200 expect=200 ok=true | depth=2 status=200 expect=200 ok=true | depth=3 status=200 expect=200 ok=true | depth=4 status=422 expect=422 ok=true
+[PASS] 6c. 前端处理 depth 越界 422 错误（显示错误提示+graphData 保持 null） — msg="加载图谱失败：depth must be between 1 and 3", 提示占位可见=true
+[PASS] 6d. 前端 depth=1/2/3 正常遍历 — d=1 nodes=1 edges=0 | d=2 nodes=1 edges=0 | d=3 nodes=1 edges=0
+[PASS] 7. 第一页点上一页（页码不变+按钮禁用+不发无效请求） — 页码 1→1, prev禁用=true, 负 offset 请求数=0
+[PASS] 8. 最后一页点下一页（页码不变+按钮禁用+不报错） — 页码 1→1, next禁用=true, 请求数=0
+[SKIP] 9. 删除最后一页唯一项 — UI 无删除资产按钮（仅详情/共享/关联），后端无 DELETE /v1/assets/{id} 端点
+[PASS] 10. ACL 空列表（暂无授权+添加功能正常+可恢复） — 清空后 rows=0 提示"暂无授权"=true, 添加后 rows=1
+[PASS] 11. 关联列表空（无出/入向+添加功能正常） — 出向=0 入向=0, 添加对话框可打开=true
+[PASS] 12. 共享管理无勾选点批量修改 — 按钮初始禁用=true, 对话框未弹出=true, warning=false
+[PASS] 13. 共享管理勾选后取消（按钮状态正确切换） — 禁用: true→false→true
+[PASS] 14. 治理看板无数据（统计=0+图表空状态+不崩溃） — total=0, 类型分布空=true, 模块分布空=true
+[PASS] 15. 详情对话框加载失败（错误提示+关闭+不卡 loading） — msg="加载详情失败：模拟服务器错误", 对话框可见=false, loading=false
+[PASS] 16. 表格列宽边界（show-overflow-tooltip 正常+不撑破布局） — ID列宽<300=true, tableW=1012<=mainW=1060, tooltipOnHover=false, cellEllipsis=true
+[PASS] 17. 退出登录后状态（返回登录页+localStorage 清空+API 401） — loginPage=true, key=null, member=null, apiStatus=401
+
+截图目录：D:\Code\TeamHarness\tests\module_frontend\screenshots\boundary
